@@ -1,5 +1,66 @@
-\subsection{Sigmoid Function}
+\subsection{Actiavtion Functions}
+
+\subsubsection{Sigmoid Function}
+
+Since I have a tensor class that will track the computation graph, I will implement the sigmoid function as a method of the tensor class. The sigmoid function is defined as follows:
+
+\begin{equation}
+    \sigma(x) = \frac{1}{1 + e^{-x}}
+\end{equation}
+
+The derivative of the sigmoid function is:
+
+\begin{equation}
+    \sigma'(x) = \sigma(x) \cdot (1 - \sigma(x))
+\end{equation}
+
+The implementation shows below:
+
+\inputminted[firstline=23, lastline=38]{python}{../FakeTorch/nn/activation.py}
+
+
+\subsubsection{ReLU Function}
+
+The ReLU function is defined as follows:
+
+\begin{equation}
+    \text{ReLU}(x) = \max(0, x)
+\end{equation}
+
+The derivative of the ReLU function is:
+
+\begin{equation}
+    \text{ReLU}'(x) = \begin{cases}
+        1 & \text{if } x > 0 \\
+        0 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+The implementation shows below:
+
+\inputminted[firstline=6, lastline=20]{python}{../FakeTorch/nn/activation.py}
 
 \subsection{Neural Network Architecture}
 
+
+As our FakeTorch library supports \texttt{nn.Linear}, which will provide a fully connected layer, we can easily build a neural network with multiple layers. The implementation of the neural network is shown below:
+
+\inputminted[firstline=4, lastline=24]{python}{../model.py}
+
+And the implementation of the \texttt{nn.Linear} is shown below:
+
+\inputminted[firstline=6, lastline=17]{python}{../FakeTorch/nn/linear.py}
+
+
 \subsection{Backpropagation}
+
+
+For the backpropagation, we need to calculate the gradient of the loss function with respect to the parameters of the model.
+
+However, since we have a tensor class that will track the computation graph, we can calculate the gradient of the loss function with respect to the parameters of the model by calling the \texttt{backward} method of the loss tensor.
+
+Note that the gradients are tracked by updating their gradint functions during the forward pass. Thus, we can calculate the gradient of the loss function with respect to the parameters of the model by calling the \texttt{backward} method of the loss tensor.
+
+The implementation of the \texttt{backward} method is shown below:
+
+\inputminted[firstline=14, lastline=34]{python}{../FakeTorch/Tensor.py}
