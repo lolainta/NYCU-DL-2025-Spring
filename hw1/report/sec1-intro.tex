@@ -1,0 +1,25 @@
+In this homework, we will need to implement a neruon network with backpropagation to solve a classification problem.
+
+But we cannot use any existing libraries for machine learning, such as TensorFlow or PyTorch. We need to implement the neural network from scratch. The only allowed external library is \href{https://numpy.org/}{NumPy}, and also \href{https://matplotlib.org/}{Matplotlib} for plotting.
+
+The problem we are going to solve is a binary classification problem. We have two dataset. Both datasets are 2D points. The first dataset is linearly separable, and the second dataset is not linearly separable.
+
+The goal is to implement a neural network with backpropagation to classify the points in the two datasets. We will compare the performance of the neural network on the two datasets.
+
+The following shows the visualization of the two datasets. The first dataset is shown in Figure~\ref{fig:dataset1}, and the second dataset is shown in Figure~\ref{fig:dataset2}.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../images/linear.png}
+        \caption{Linearly separable dataset}
+        \label{fig:dataset1}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{../images/xor_easy.png}
+        \caption{XOR dataset}
+        \label{fig:dataset2}
+    \end{subfigure}
+\end{figure}
