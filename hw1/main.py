@@ -13,13 +13,19 @@ from data import generate_linear, generate_XOR_easy
 np.set_printoptions(precision=3, linewidth=400, suppress=True)
 
 
-def main(dataset: str, hidden_size, learning_rate, epochs, loss_fn, verbose=True):
+def main(
+    dataset: str,
+    hidden_size,
+    learning_rate,
+    epochs,
+    loss_fn,
+    activation,
+    verbose=True,
+):
     np.random.seed(0)
     if verbose:
         print(f"Params: {locals()}")
-    out_dir = (
-        f"hidden_{hidden_size}_lr_{learning_rate}_epochs_{epochs}_{loss_fn}_{dataset}"
-    )
+    out_dir = f"hidden_{hidden_size}_lr_{learning_rate}_epochs_{epochs}_{loss_fn}_{activation}_{dataset}"
     if verbose:
         print(f"Output directory: {out_dir}")
 
@@ -39,7 +45,7 @@ def main(dataset: str, hidden_size, learning_rate, epochs, loss_fn, verbose=True
     Y = torch.tensor(y_org)
 
     # Create model
-    model = MLP(2, hidden_size, 1)
+    model = MLP(2, hidden_size, 1, activation)
 
     loss_curve = []
 
@@ -88,31 +94,25 @@ def main(dataset: str, hidden_size, learning_rate, epochs, loss_fn, verbose=True
 
 if __name__ == "__main__":
     plist = []
-    for hidden_size in [1, 2, 4, 8, 16, 32, 64]:
+    for hidden_size in [1, 2, 4, 8, 16, 32]:
         for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
             for epochs in [500, 1000, 2000]:
                 for loss_fn in [torch.nn.BCELoss(), torch.nn.MSELoss()]:
                     for dataset in reversed(["linear", "xor"]):
-                        p = Process(
-                            target=main,
-                            args=(
-                                dataset,
-                                hidden_size,
-                                learning_rate,
-                                epochs,
-                                loss_fn,
-                                False,
-                            ),
-                        )
-                        p.start()
-                        plist.append(p)
-
-                        # main(
-                        #     dataset=dataset,
-                        #     hidden_size=hidden_size,
-                        #     learning_rate=learning_rate,
-                        #     epochs=epochs,
-                        #     loss_fn=torch.nn.BCELoss(),
-                        # )
+                        for activation in ["sigmoid", "relu", "none"]:
+                            p = Process(
+                                target=main,
+                                args=(
+                                    dataset,
+                                    hidden_size,
+                                    learning_rate,
+                                    epochs,
+                                    loss_fn,
+                                    activation,
+                                    False,
+                                ),
+                            )
+                            p.start()
+                            plist.append(p)
     for p in plist:
         p.join()

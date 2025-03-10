@@ -35,3 +35,8 @@ class Sigmoid:
             out._prev = {x}
 
         return out
+
+
+class Identity:
+    def __call__(self, x):
+        return x
