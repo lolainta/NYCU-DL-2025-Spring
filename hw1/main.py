@@ -97,9 +97,13 @@ if __name__ == "__main__":
     for hidden_size in [1, 2, 4, 8, 16, 32]:
         for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
             for epochs in [500, 1000, 2000]:
+                if epochs != 2000:
+                    continue
                 for loss_fn in [torch.nn.BCELoss(), torch.nn.MSELoss()]:
                     for dataset in reversed(["linear", "xor"]):
-                        for activation in ["sigmoid", "relu", "none"]:
+                        for activation in ["sigmoid", "relu", "tanh", "none"]:
+                            if activation != "tanh":
+                                continue
                             p = Process(
                                 target=main,
                                 args=(

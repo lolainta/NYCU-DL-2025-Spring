@@ -37,6 +37,21 @@ class Sigmoid:
         return out
 
 
+class Tanh:
+    def __call__(self, x):
+        out = Tensor(np.tanh(x.data), requires_grad=x.requires_grad)
+
+        def grad_fn():
+            if x.grad is not None:
+                x.grad += (1 - out.data**2) * out.grad
+
+        if out.requires_grad:
+            out._grad_fn = grad_fn
+            out._prev = {x}
+
+        return out
+
+
 class Identity:
     def __call__(self, x):
         return x

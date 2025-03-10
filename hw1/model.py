@@ -11,6 +11,8 @@ class MLP:
             self.activation = torch.nn.Sigmoid()
         elif activation == "relu":
             self.activation = torch.nn.ReLU()
+        elif activation == "tanh":
+            self.activation = torch.nn.Tanh()
         elif activation == "none":
             self.activation = torch.nn.Identity()
         else:
