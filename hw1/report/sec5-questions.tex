@@ -1,13 +1,33 @@
-\subsection{Questions}
+\subsection{Questions 1}
 
-\subsubsection{Questions 1}
-
+\begin{quote}
 What is the purpose of activation functions?
+\end{quote}
 
-\subsubsection{Questions 2}
+The purpose of activation functions is to introduce non-linearity to the neural network. Without activation functions, the neural network would be a linear model, which is not capable of learning complex patterns in the data. Activation functions allow the neural network to learn complex patterns by introducing non-linearity to the model.
 
-What might happen if the learning rate is too large or too small?  
+As discussed in Section \ref{sec:discussion_without_activation_function}, the neural network without activation functions is equivalent to a linear model.
+The output of the neural network is a linear combination of the input features, which is not capable of learning complex patterns such as XOR.
+Therefore, activation functions are essential for the neural network to learn complex patterns in the data.
 
-\subsubsection{Questions 3}
 
-What is the purpose of weights and biases in a neural network? 
+\subsection{Questions 2}
+
+\begin{quote}
+What might happen if the learning rate is too large or too small?
+\end{quote}
+
+As discussed in Section \ref{sec:discussion_learning_rate}, if the learning rate is too large, the model may fail to converge, and the loss may oscillate or diverge.
+On the other hand, if the learning rate is too small, the model may take a long time to converge, and the training process may be slow.
+Therefore, it is essential to choose an appropriate learning rate to ensure the model converges quickly and efficiently.
+
+\subsection{Questions 3}
+
+\begin{quote}
+What is the purpose of weights and biases in a neural network?
+\end{quote}
+
+The purpose of weights and biases in a neural network is to learn the patterns in the data.
+Weights are the parameters that the neural network learns during the training process to map the input features to the output.
+Biases are the parameters that the neural network learns to shift the output of the linear transformation by a constant value.
+By learning the weights and biases, the neural network can learn the patterns in the data and make accurate predictions.
