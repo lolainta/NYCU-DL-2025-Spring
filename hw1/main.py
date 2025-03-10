@@ -20,32 +20,42 @@ def main(
     epochs,
     loss_fn,
     activation,
+    optim,
     verbose=True,
 ):
+    # Set random seed
     np.random.seed(0)
+
+    # Print parameters
     if verbose:
         print(f"Params: {locals()}")
-    out_dir = f"hidden_{hidden_size}_lr_{learning_rate}_epochs_{epochs}_{loss_fn}_{activation}_{dataset}"
+    out_dir = f"hidden_{hidden_size}_lr_{learning_rate}_epochs_{epochs}_{loss_fn}_{activation}_{optim}_{dataset}"
     if verbose:
         print(f"Output directory: {out_dir}")
+    out_dir = os.path.join("results", out_dir)
+    os.makedirs(out_dir, exist_ok=True)
 
+    # Generate data
     if dataset == "linear":
         data = generate_linear()
     elif dataset == "xor":
         data = generate_XOR_easy()
     else:
         raise ValueError(f"Invalid data: {data}")
-
-    out_dir = os.path.join("results", out_dir)
-    os.makedirs(out_dir, exist_ok=True)
-
     x_org, y_org = data
-
     X = torch.tensor(x_org)
     Y = torch.tensor(y_org)
 
     # Create model
     model = MLP(2, hidden_size, 1, activation)
+
+    # Create optimizer
+    if optim == "SGD":
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    elif optim == "Adam":
+        optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+    else:
+        raise ValueError(f"Invalid optimizer: {optim}")
 
     loss_curve = []
 
@@ -59,13 +69,11 @@ def main(
             loss = loss_fn(pred, y)
 
             # Backward pass
-            for p in model.parameters():
-                p.zero_grad()
+            optimizer.zero_grad()
             loss.backward()
 
             # Update weights
-            for p in model.parameters():
-                p.data -= learning_rate * p.grad
+            optimizer.step()
 
         loss = loss_fn(model(X), Y)
         loss_curve.append(loss.data.item())
@@ -102,21 +110,22 @@ if __name__ == "__main__":
                 for loss_fn in [torch.nn.BCELoss(), torch.nn.MSELoss()]:
                     for dataset in reversed(["linear", "xor"]):
                         for activation in ["sigmoid", "relu", "tanh", "none"]:
-                            if activation != "tanh":
-                                continue
-                            p = Process(
-                                target=main,
-                                args=(
-                                    dataset,
-                                    hidden_size,
-                                    learning_rate,
-                                    epochs,
-                                    loss_fn,
-                                    activation,
-                                    False,
-                                ),
-                            )
-                            p.start()
-                            plist.append(p)
+                            for optim in ["SGD", "Adam"]:
+                                p = Process(
+                                    target=main,
+                                    args=(
+                                        dataset,
+                                        hidden_size,
+                                        learning_rate,
+                                        epochs,
+                                        loss_fn,
+                                        activation,
+                                        optim,
+                                        False,
+                                    ),
+                                )
+                                p.start()
+                                plist.append(p)
+
     for p in plist:
         p.join()

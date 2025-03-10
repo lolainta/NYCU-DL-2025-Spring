@@ -45,7 +45,6 @@ class Tensor:
             self.data + other.data,
             requires_grad=self.requires_grad or other.requires_grad,
         )
-        # print(f"Add: {self.data} + {other.data} = {out.data}")
 
         def grad_fn():
             if self.requires_grad:
@@ -64,12 +63,8 @@ class Tensor:
             self.data - other.data,
             requires_grad=self.requires_grad or other.requires_grad,
         )
-        # print(f"Sub: {self.data} - {other.data} = {out.data}")
 
         def grad_fn():
-            # print(f"Grad: {out.grad}")
-            # print(f"Self: {self.requires_grad}")
-            # print(f"Other: {other.requires_grad}")
             if self.requires_grad:
                 self.grad += out.grad
             if other.requires_grad:
@@ -87,7 +82,6 @@ class Tensor:
             self.data * other.data,
             requires_grad=self.requires_grad or other.requires_grad,
         )
-        # print(f"Mul: {self.data} * {other.data} = {out.data}")
 
         def grad_fn():
             if self.requires_grad:
