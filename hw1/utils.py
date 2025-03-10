@@ -1,5 +1,8 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+
 def show_results(x, y, pred_y, fname="result.png"):
-    import matplotlib.pyplot as plt
 
     plt.subplot(1, 2, 1)
     plt.title("Ground truth", fontsize=18)
@@ -19,3 +22,20 @@ def show_results(x, y, pred_y, fname="result.png"):
 
     plt.savefig(fname)
     plt.close()
+
+
+def show_learning_curve(loss_curve, fname="loss.png"):
+
+    plt.plot(loss_curve)
+    plt.title("Learning Curve", fontsize=18)
+    plt.xlabel("Epoch", fontsize=12)
+    plt.ylabel("Loss", fontsize=12)
+    plt.savefig(fname)
+    plt.close()
+
+
+def evaluate_accuracy(pred, target):
+    pred[pred >= 0.5] = 1
+    pred[pred < 0.5] = 0
+    acc = np.mean(pred == target)
+    return acc

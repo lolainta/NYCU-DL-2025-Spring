@@ -8,18 +8,20 @@ class MSELoss:
         return self.forward(pred, target)
 
     def forward(self, pred, target):
-        diff = pred - target
-        out = Tensor((diff.data**2), requires_grad=True)
+        loss_value = np.mean((pred.data - target.data) ** 2)
+        out = Tensor(loss_value, requires_grad=True)
 
         def grad_fn():
-            pred.grad += (2 * diff.data / target.data.shape[0]) * out.grad
+            pred.grad += 2 * (pred.data - target.data) / target.data.shape[0]
 
         if out.requires_grad:
             out._grad_fn = grad_fn
             out._prev = {pred}
-            out.grad = 1.0
 
         return out
+
+    def __repr__(self):
+        return self.__class__.__name__
 
 
 class BCELoss:
@@ -47,3 +49,6 @@ class BCELoss:
             out._prev = {pred}
 
         return out
+
+    def __repr__(self):
+        return self.__class__.__name__
