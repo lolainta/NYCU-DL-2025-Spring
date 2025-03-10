@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from multiprocessing import Process
+from multiprocessing import Process, Pool
 
 
 import FakeTorch as torch
@@ -78,10 +78,8 @@ def main(
         loss = loss_fn(model(X), Y)
         loss_curve.append(loss.data.item())
 
-        if (epoch + 1) % 100 == 0:
-            if verbose:
-                print(f"{out_dir}: Epoch {epoch + 1}, Loss: {loss.data.item()}")
-
+        if verbose and (epoch + 1) % 100 == 0:
+            print(f"{out_dir}: Epoch {epoch + 1}, Loss: {loss.data.item()}")
             show_results(
                 x_org, y_org, model(X).data, fname=f"{out_dir}/epoch-{epoch+1}.png"
             )
@@ -101,31 +99,29 @@ def main(
 
 
 if __name__ == "__main__":
-    plist = []
-    for hidden_size in [1, 2, 4, 8, 16, 32]:
-        for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
-            for epochs in [500, 1000, 2000]:
-                if epochs != 2000:
-                    continue
-                for loss_fn in [torch.nn.BCELoss(), torch.nn.MSELoss()]:
-                    for dataset in reversed(["linear", "xor"]):
-                        for activation in ["sigmoid", "relu", "tanh", "none"]:
-                            for optim in ["SGD", "Adam"]:
-                                p = Process(
-                                    target=main,
-                                    args=(
-                                        dataset,
-                                        hidden_size,
-                                        learning_rate,
-                                        epochs,
-                                        loss_fn,
-                                        activation,
-                                        optim,
-                                        False,
-                                    ),
-                                )
-                                p.start()
-                                plist.append(p)
+    with Pool(24) as p:
+        for hidden_size in [1, 2, 4, 8, 16, 32]:
+            for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
+                for epochs in [500, 1000, 2000]:
+                    if epochs != 2000:
+                        continue
+                    for loss_fn in [torch.nn.BCELoss(), torch.nn.MSELoss()]:
+                        for dataset in reversed(["linear", "xor"]):
+                            for activation in ["sigmoid", "relu", "tanh", "none"]:
+                                for optim in ["SGD", "Adam"]:
+                                    p.apply_async(
+                                        main,
+                                        (
+                                            dataset,
+                                            hidden_size,
+                                            learning_rate,
+                                            epochs,
+                                            loss_fn,
+                                            activation,
+                                            optim,
+                                            False,
+                                        ),
+                                    )
 
-    for p in plist:
+        p.close()
         p.join()
