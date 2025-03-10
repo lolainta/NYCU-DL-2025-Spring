@@ -37,7 +37,7 @@ def main():
 
             # Forward pass
             pred = model(x)
-            loss = torch.nn.BCELoss()(pred, y)
+            # loss = torch.nn.BCELoss()(pred, y)
             loss = torch.nn.MSELoss()(pred, y)
 
             # Backward pass

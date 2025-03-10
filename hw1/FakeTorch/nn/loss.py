@@ -12,9 +12,7 @@ class MSELoss:
         out = Tensor((diff.data**2), requires_grad=True)
 
         def grad_fn():
-            pred.grad += (2 * diff.data / target.data.shape[0]) * out.grad.reshape(
-                -1, 1
-            )
+            pred.grad += (2 * diff.data / target.data.shape[0]) * out.grad
 
         if out.requires_grad:
             out._grad_fn = grad_fn
