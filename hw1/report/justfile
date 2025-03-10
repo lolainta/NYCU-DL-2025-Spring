@@ -3,18 +3,20 @@ MAIN := "main"
 
 # Compile with latexmk (automatically determines how many times to run pdflatex)
 pdf:
-    latexmk -pdf -bibtex -shell-escape -interaction=nonstopmode {{MAIN}}.tex
+    latexmk -pdf -bibtex -shell-escape -interaction=nonstopmode {{MAIN}}.tex --output-directory=build
+    mv build/{{MAIN}}.pdf report.pdf
 
 # Compile with xelatex (for fonts and Unicode support)
 xelatex:
-    latexmk -pdf -bibtex -xelatex -shell-escape -interaction=nonstopmode {{MAIN}}.tex
+    latexmk -pdf -bibtex -xelatex -shell-escape -interaction=nonstopmode {{MAIN}}.tex --output-directory=build
 
 # Compile with lualatex (alternative engine)
 lualatex:
-    latexmk -pdf -bibtex -lualatex -shell-escape -interaction=nonstopmode {{MAIN}}.tex
+    latexmk -pdf -bibtex -lualatex -shell-escape -interaction=nonstopmode {{MAIN}}.tex --output-directory=build
 
 # Clean auxiliary files
 clean:
     latexmk -c
-    rm -f {{MAIN}}.bbl
     rm -rf _minted-{{MAIN}}
+    rm -f report.pdf
+    rm -f build/*
