@@ -1,0 +1,57 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\usepackage{minted}
+\usepackage{xcolor}
+
+\definecolor{bgcolor}{rgb}{0.95, 0.95, 0.95}  % Light gray background for readability
+\setminted{
+    fontsize=\small,    % Adjust code font size
+    linenos=true,       % Enable line numbers
+    numbersep=5pt,      % Space between numbers and code
+    frame=single,       % Box around code
+    framesep=2mm,       % Padding inside the frame
+    bgcolor=bgcolor,    % Background color
+    breaklines=true,    % Line breaking
+    tabsize=4           % Consistent tab width
+}
+
+\usepackage{inconsolata} 
+
+\usepackage{biblatex}
+\addbibresource{references.bib}
+
+\title{Deep Learning Homework 1 Report}
+\author{Cheng-Liang Chi}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+\input{sec1-intro.tex}
+
+\section{Implementation Details}
+\input{sec2-implementation_detials.tex}
+
+\section{Experimental Results}
+\input{sec3-experimental_results.tex}
+
+\section{Discussion}
+\input{sec4-discussion.tex}
+
+\section{Questions}
+\input{sec5-questions.tex}
+
+\section{Extra}
+\input{sec6-extra.tex}
+
+% \section{References}
+% \nocite{*}
+\printbibliography
+
+\end{document}

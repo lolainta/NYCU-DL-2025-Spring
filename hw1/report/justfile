@@ -1,0 +1,20 @@
+# Set the main LaTeX file name (without .tex extension)
+MAIN := "main"
+
+# Compile with latexmk (automatically determines how many times to run pdflatex)
+pdf:
+    latexmk -pdf -bibtex -shell-escape -interaction=nonstopmode {{MAIN}}.tex
+
+# Compile with xelatex (for fonts and Unicode support)
+xelatex:
+    latexmk -pdf -bibtex -xelatex -shell-escape -interaction=nonstopmode {{MAIN}}.tex
+
+# Compile with lualatex (alternative engine)
+lualatex:
+    latexmk -pdf -bibtex -lualatex -shell-escape -interaction=nonstopmode {{MAIN}}.tex
+
+# Clean auxiliary files
+clean:
+    latexmk -c
+    rm -f {{MAIN}}.bbl
+    rm -rf _minted-{{MAIN}}
