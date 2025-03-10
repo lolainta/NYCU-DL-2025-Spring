@@ -6,12 +6,12 @@ Results of the experiments are shown in the screenshots below:
     \centering
     \begin{subfigure}{0.5\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.05_epochs_2000_BCELoss_linear/final.png}
+        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.01_epochs_2000_BCELoss_sigmoid_linear/final.png}
         \caption{Dataset: Linear (Accuracy: 100\%)}
     \end{subfigure}%
     \begin{subfigure}{0.5\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.05_epochs_2000_BCELoss_xor/final.png}
+        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.01_epochs_2000_BCELoss_sigmoid_xor/final.png}
         \caption{Dataset: XOR (Accuracy: 100\%)}
     \end{subfigure}
     \caption{Results of the experiments}
@@ -21,35 +21,32 @@ The above experiments are conducted with the following hyperparameters:
 
 \begin{itemize}
     \item Hidden units: 16
-    \item Learning rate: 0.05
+    \item Learning rate: 0.01
     \item Number of epochs: 2000
     \item Activation function: Sigmoid
     \item Loss function: Binary Cross Entropy
     \item Dataset: Linear, XOR
 \end{itemize}
 
-
 \subsection{Prediction Accuracy}
-
 
 As shown in the screenshots, the model achieved 100\% accuracy on both the linear and XOR datasets.
 
 \subsection{Learning Curve}
 
-
-The learning curve of both datasets is shown bellows:
+The learning curve of the experiments is shown below (the hyperparameters are the same as above):
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.05_epochs_2000_BCELoss_linear/loss.png}
+        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.01_epochs_2000_BCELoss_sigmoid_linear/loss.png}
         \caption{Dataset: Linear}
     \end{subfigure}
     \begin{subfigure}[b]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.05_epochs_2000_BCELoss_xor/loss.png}
+        \includegraphics[width=\textwidth]{../results/hidden_16_lr_0.01_epochs_2000_BCELoss_sigmoid_xor/loss.png}
         \caption{Dataset: XOR}
     \end{subfigure}
-    \caption{Learning curve of the experiments}
+    \caption{Learning curve of the experiments. The x-axis represents the number of epochs, and the y-axis represents the loss.}
 \end{figure}
