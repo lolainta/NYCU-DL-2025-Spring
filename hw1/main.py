@@ -5,7 +5,7 @@ from multiprocessing import Process, Pool
 
 import FakeTorch as torch
 
-from model import MLP
+from model import MLP, CNN
 from utils import show_results, show_learning_curve, evaluate_accuracy
 from data import generate_linear, generate_XOR_easy
 
@@ -21,6 +21,7 @@ def main(
     loss_fn,
     activation,
     optim,
+    model,
     verbose=True,
 ):
     # Set random seed
@@ -45,9 +46,6 @@ def main(
     x_org, y_org = data
     X = torch.tensor(x_org)
     Y = torch.tensor(y_org)
-
-    # Create model
-    model = MLP(2, hidden_size, 1, activation)
 
     # Create optimizer
     if optim == "SGD":
@@ -103,12 +101,11 @@ if __name__ == "__main__":
         for hidden_size in [1, 2, 4, 8, 16, 32]:
             for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
                 for epochs in [500, 1000, 2000]:
-                    if epochs != 2000:
-                        continue
                     for loss_fn in [torch.nn.BCELoss(), torch.nn.MSELoss()]:
                         for dataset in reversed(["linear", "xor"]):
                             for activation in ["sigmoid", "relu", "tanh", "none"]:
                                 for optim in ["SGD", "Adam"]:
+                                    model = MLP(2, hidden_size, 1, activation)
                                     p.apply_async(
                                         main,
                                         (
@@ -119,9 +116,22 @@ if __name__ == "__main__":
                                             loss_fn,
                                             activation,
                                             optim,
+                                            model,
                                             False,
                                         ),
                                     )
 
         p.close()
         p.join()
+
+    main(
+        "linear",
+        1,
+        0.01,
+        2000,
+        torch.nn.BCELoss(),
+        "tanh",
+        "Adam",
+        CNN(2, 1, 1, activation),
+        True,
+    )
