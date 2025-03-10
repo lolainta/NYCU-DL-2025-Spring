@@ -45,7 +45,7 @@ The implementation shows below:
 
 As our FakeTorch library supports \texttt{nn.Linear}, which will provide a fully connected layer, we can easily build a neural network with multiple layers. The implementation of the neural network is shown below:
 
-\inputminted[firstline=4, lastline=24]{python}{../model.py}
+\inputminted[firstline=17, lastline=38]{python}{../model.py}
 
 And the implementation of the \texttt{nn.Linear} is shown below:
 
@@ -104,4 +104,4 @@ Note that the gradients are tracked by updating their gradint functions during t
 
 The implementation of the \texttt{backward} method is shown below:
 
-\inputminted[firstline=14, lastline=33]{python}{../FakeTorch/Tensor.py}
+\inputminted[firstline=16, lastline=35]{python}{../FakeTorch/Tensor.py}
