@@ -81,18 +81,16 @@ def main(dataset: str, hidden_size, learning_rate, epochs, loss_fn, verbose=True
     if verbose:
         print(f"Accuracy: {acc}")
 
-    with open(f"{out_dir}/results.txt", "w") as f:
-        f.write(f"Accuracy: {acc}")
+    with open(f"{out_dir}/accuracy.txt", "w") as f:
+        f.write(f"{acc*100:.2f}\\%")
     print(f"{out_dir}: Accuracy: {acc}")
 
 
 if __name__ == "__main__":
     plist = []
-    for hidden_size in [4, 8, 16, 32, 64]:
-        for learning_rate in [0.01, 0.05, 0.1]:
+    for hidden_size in [1, 2, 4, 8, 16, 32, 64]:
+        for learning_rate in [0.00001, 0.0001, 0.001, 0.01, 0.1]:
             for epochs in [500, 1000, 2000]:
-                if epochs != 2000:
-                    continue
                 for loss_fn in [torch.nn.BCELoss(), torch.nn.MSELoss()]:
                     for dataset in reversed(["linear", "xor"]):
                         p = Process(

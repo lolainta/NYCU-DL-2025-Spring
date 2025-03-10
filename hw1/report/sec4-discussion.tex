@@ -1,5 +1,57 @@
+\newcommand{\acc}[5]{../results/hidden_#1_lr_#2_epochs_#3_#4_#5/accuracy.txt}
+\newcommand{\getacc}[5]{\input{\acc{#1}{#2}{#3}{#4}{#5}}}
+
 \subsection{Different Learning Rates}
+
+I also tried different learning rates. The results are shown in Table \ref{tab:comparison_matrix}.
 
 \subsection{Different Number of Hidden Units}
 
-\subsection{Withoud Activation Function}
+I also tried different number of hidden units. The results are shown in Table \ref{tab:comparison_matrix}.
+
+
+\begin{table}[h]
+    \centering
+    \renewcommand{\arraystretch}{1.2}
+    \setlength{\tabcolsep}{8pt} % Reduce column spacing for compactness
+
+    % XOR Dataset Table
+    \textbf{XOR Dataset Accuracy (\%)} \\[5pt]
+    \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        \multirow{2}{*}{Learning Rate} & \multicolumn{5}{c|}{\textbf{Hidden Layer Size}} \\
+        \cline{2-6}
+        & \textbf{4} & \textbf{8} & \textbf{16} & \textbf{32} & \textbf{64} \\
+        \hline
+        0.1     & \getacc{4}{0.1}{2000}{BCELoss}{xor} & \getacc{8}{0.1}{2000}{BCELoss}{xor} & \getacc{16}{0.1}{2000}{BCELoss}{xor} & \getacc{32}{0.1}{2000}{BCELoss}{xor} & \getacc{64}{0.1}{2000}{BCELoss}{xor} \\
+        0.01    & \getacc{4}{0.01}{2000}{BCELoss}{xor} & \getacc{8}{0.01}{2000}{BCELoss}{xor} & \getacc{16}{0.01}{2000}{BCELoss}{xor} & \getacc{32}{0.01}{2000}{BCELoss}{xor} & \getacc{64}{0.01}{2000}{BCELoss}{xor} \\
+        0.001   & \getacc{4}{0.001}{2000}{BCELoss}{xor} & \getacc{8}{0.001}{2000}{BCELoss}{xor} & \getacc{16}{0.001}{2000}{BCELoss}{xor} & \getacc{32}{0.001}{2000}{BCELoss}{xor} & \getacc{64}{0.001}{2000}{BCELoss}{xor} \\
+        0.0001  & \getacc{4}{0.0001}{2000}{BCELoss}{xor} & \getacc{8}{0.0001}{2000}{BCELoss}{xor} & \getacc{16}{0.0001}{2000}{BCELoss}{xor} & \getacc{32}{0.0001}{2000}{BCELoss}{xor} & \getacc{64}{0.0001}{2000}{BCELoss}{xor} \\
+        0.00001 & \getacc{4}{1e-05}{2000}{BCELoss}{xor} & \getacc{8}{1e-05}{2000}{BCELoss}{xor} & \getacc{16}{1e-05}{2000}{BCELoss}{xor} & \getacc{32}{1e-05}{2000}{BCELoss}{xor} & \getacc{64}{1e-05}{2000}{BCELoss}{xor} \\
+        \hline
+    \end{tabular}
+
+    \vspace{0.7cm} % Space between tables
+
+    % Linear Dataset Table
+    \textbf{Linear Dataset Accuracy (\%)} \\[5pt]
+    \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        \multirow{2}{*}{Learning Rate} & \multicolumn{5}{c|}{\textbf{Hidden Layer Size}} \\
+        \cline{2-6}
+        & \textbf{4} & \textbf{8} & \textbf{16} & \textbf{32} & \textbf{64} \\
+        \hline
+        0.1     & \getacc{4}{0.1}{2000}{BCELoss}{linear} & \getacc{8}{0.1}{2000}{BCELoss}{linear} & \getacc{16}{0.1}{2000}{BCELoss}{linear} & \getacc{32}{0.1}{2000}{BCELoss}{linear} & \getacc{64}{0.1}{2000}{BCELoss}{linear} \\
+        0.01    & \getacc{4}{0.01}{2000}{BCELoss}{linear} & \getacc{8}{0.01}{2000}{BCELoss}{linear} & \getacc{16}{0.01}{2000}{BCELoss}{linear} & \getacc{32}{0.01}{2000}{BCELoss}{linear} & \getacc{64}{0.01}{2000}{BCELoss}{linear} \\
+        0.001   & \getacc{4}{0.001}{2000}{BCELoss}{linear} & \getacc{8}{0.001}{2000}{BCELoss}{linear} & \getacc{16}{0.001}{2000}{BCELoss}{linear} & \getacc{32}{0.001}{2000}{BCELoss}{linear} & \getacc{64}{0.001}{2000}{BCELoss}{linear} \\
+        0.0001  & \getacc{4}{0.0001}{2000}{BCELoss}{linear} & \getacc{8}{0.0001}{2000}{BCELoss}{linear} & \getacc{16}{0.0001}{2000}{BCELoss}{linear} & \getacc{32}{0.0001}{2000}{BCELoss}{linear} & \getacc{64}{0.0001}{2000}{BCELoss}{linear} \\
+        0.00001 & \getacc{4}{1e-05}{2000}{BCELoss}{linear} & \getacc{8}{1e-05}{2000}{BCELoss}{linear} & \getacc{16}{1e-05}{2000}{BCELoss}{linear} & \getacc{32}{1e-05}{2000}{BCELoss}{linear} & \getacc{64}{1e-05}{2000}{BCELoss}{linear} \\
+        \hline
+    \end{tabular}
+
+    \caption{Comparison of different learning rates and hidden layer sizes on XOR and linear datasets.}
+    \label{tab:comparison_matrix}
+\end{table}
+
+
+\subsection{Without Activation Function}
