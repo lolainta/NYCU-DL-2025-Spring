@@ -51,9 +51,50 @@ And the implementation of the \texttt{nn.Linear} is shown below:
 
 \inputminted[firstline=6, lastline=17]{python}{../FakeTorch/nn/linear.py}
 
+\subsection{Loss Function}
 
+For the loss function, I implemented the mean squared error (MSE) loss function.
+
+Since our tensor class will track the computation graph, we can calculate the gradient of the loss function with respect to the parameters of the model by calling the \texttt{backward} method of the loss tensor, which will update the gradient functions of the parameters. For more details, please refer to \hyperref[sec:backpropagation]{the backpropagation section}.
+
+\subsubsection{Mean Squared Error (MSE)}
+
+The MSE loss function is defined as follows:
+
+\begin{equation}
+    \text{MSE} = \frac{1}{n} \sum_{i=1}^{n} (y_i - \hat{y}_i)^2
+\end{equation}
+
+The derivative of the MSE loss function is:
+
+\begin{equation}
+    \frac{\partial \text{MSE}}{\partial \hat{y}_i} = \frac{2}{n} (\hat{y}_i - y_i)
+\end{equation}
+
+The implementation of the MSE loss function is shown below:
+
+\inputminted[firstline=6, lastline=21]{python}{../FakeTorch/nn/loss.py}
+
+\subsubsection{Binary Cross Entropy}
+
+The binary cross entropy (BCE) loss function is defined as follows:
+
+\begin{equation}
+    \text{BCE} = -\frac{1}{n} \sum_{i=1}^{n} y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i)
+\end{equation}
+
+The derivative of the BCE loss function is:
+
+\begin{equation}
+    \frac{\partial \text{BCE}}{\partial \hat{y}_i} = -\frac{y_i}{\hat{y}_i} + \frac{1 - y_i}{1 - \hat{y}_i}
+\end{equation}
+
+The implementation of the BCE loss function is shown below:
+
+\inputminted[firstline=25, lastline=49]{python}{../FakeTorch/nn/loss.py}
+
+\label{sec:backpropagation}
 \subsection{Backpropagation}
-
 
 For the backpropagation, we need to calculate the gradient of the loss function with respect to the parameters of the model.
 

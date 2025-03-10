@@ -23,13 +23,6 @@ class MSELoss:
 
 
 class BCELoss:
-    """
-    Binary Cross Entropy (BCE) Loss for binary classification.
-
-    pred: Tensor, raw logits (N, 1)
-    target: Tensor, binary labels (N, 1) (0 or 1)
-    """
-
     def __call__(self, pred, target):
         return self.forward(pred, target)
 
