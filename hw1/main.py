@@ -15,9 +15,10 @@ np.set_printoptions(precision=3, linewidth=400, suppress=True)
 def main():
     # Dummy dataset: 10 samples, 3 input features
     x_org, y_org = generate_XOR_easy()
+    # x_org, y_org = generate_linear()
 
-    X = torch.Tensor(x_org, requires_grad=False)
-    Y = torch.Tensor(y_org, requires_grad=False)
+    X = torch.tensor(x_org)
+    Y = torch.tensor(y_org)
 
     print(f"X: {X.data.shape}")
     print(f"Y: {Y.data.shape}")
@@ -31,13 +32,13 @@ def main():
 
     for epoch in range(epochs):
         for i in range(X.data.shape[0]):
-            x = torch.Tensor(X.data[i].reshape(1, -1), requires_grad=False)
-            y = torch.Tensor(Y.data[i].reshape(1, -1), requires_grad=False)
+            x = torch.tensor(X.data[i].reshape(1, -1))
+            y = torch.tensor(Y.data[i].reshape(1, -1))
 
             # Forward pass
             pred = model(x)
-            # loss = nn.BCELoss(pred, y)
-            loss = torch.nn.MSELoss(pred, y)
+            loss = torch.nn.BCELoss()(pred, y)
+            loss = torch.nn.MSELoss()(pred, y)
 
             # Backward pass
             for p in model.parameters():

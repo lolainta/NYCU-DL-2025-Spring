@@ -25,7 +25,8 @@ class Tensor:
 
         build_topo(self)
 
-        self.grad = np.ones_like(self.data)  # Seed gradient for scalar outputs
+        if self.grad is None:
+            self.grad = np.ones_like(self.data)  # Seed gradient for scalar outputs
 
         for tensor in reversed(topo):
             if tensor._grad_fn:
