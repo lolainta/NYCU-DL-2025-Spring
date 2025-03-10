@@ -8,8 +8,8 @@ class MLP:
         self.fc3 = torch.nn.Linear(hidden_size, out_features)
 
     def __call__(self, x):
-        x = torch.nn.Sigmoid(self.fc1(x))
-        x = torch.nn.Sigmoid(self.fc2(x))
+        x = torch.nn.Sigmoid()(self.fc1(x))
+        x = torch.nn.Sigmoid()(self.fc2(x))
         return self.fc3(x)  # No activation at the output layer
 
     def parameters(self):
