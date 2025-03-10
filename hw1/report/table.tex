@@ -1,5 +1,5 @@
-\newcommand{\acc}[6]{../results/hidden_#1_lr_#2_epochs_#3_#4_#5_#6/accuracy.txt}
-\newcommand{\getacc}[6]{\input{\acc{#1}{#2}{#3}{#4}{#5}{#6}}}
+\newcommand{\acc}[7]{../results/hidden_#1_lr_#2_epochs_#3_#4_#5_#6_#7/accuracy.txt}
+\newcommand{\getacc}[7]{\input{\acc{#1}{#2}{#3}{#4}{#5}{#6}{#7}}}
 
 \newcommand{\comparisontable}[1]{
     \begin{table}[h]
@@ -15,11 +15,11 @@
             \cline{2-7}
             & \textbf{1} & \textbf{2} & \textbf{4} & \textbf{8} & \textbf{16} & \textbf{32} \\
             \hline
-            0.1     & \getacc{1}{0.1}{2000}{BCELoss}{#1}{xor} & \getacc{2}{0.1}{2000}{BCELoss}{#1}{xor} & \getacc{4}{0.1}{2000}{BCELoss}{#1}{xor} & \getacc{8}{0.1}{2000}{BCELoss}{#1}{xor} & \getacc{16}{0.1}{2000}{BCELoss}{#1}{xor} & \getacc{32}{0.1}{2000}{BCELoss}{#1}{xor} \\
-            0.01    & \getacc{1}{0.01}{2000}{BCELoss}{#1}{xor} & \getacc{2}{0.01}{2000}{BCELoss}{#1}{xor} & \getacc{4}{0.01}{2000}{BCELoss}{#1}{xor} & \getacc{8}{0.01}{2000}{BCELoss}{#1}{xor} & \getacc{16}{0.01}{2000}{BCELoss}{#1}{xor} & \getacc{32}{0.01}{2000}{BCELoss}{#1}{xor} \\
-            0.001   & \getacc{1}{0.001}{2000}{BCELoss}{#1}{xor} & \getacc{2}{0.001}{2000}{BCELoss}{#1}{xor} & \getacc{4}{0.001}{2000}{BCELoss}{#1}{xor} & \getacc{8}{0.001}{2000}{BCELoss}{#1}{xor} & \getacc{16}{0.001}{2000}{BCELoss}{#1}{xor} & \getacc{32}{0.001}{2000}{BCELoss}{#1}{xor} \\
-            0.0001  & \getacc{1}{0.0001}{2000}{BCELoss}{#1}{xor} & \getacc{2}{0.0001}{2000}{BCELoss}{#1}{xor} & \getacc{4}{0.0001}{2000}{BCELoss}{#1}{xor} & \getacc{8}{0.0001}{2000}{BCELoss}{#1}{xor} & \getacc{16}{0.0001}{2000}{BCELoss}{#1}{xor} & \getacc{32}{0.0001}{2000}{BCELoss}{#1}{xor} \\
-            0.00001 & \getacc{1}{1e-05}{2000}{BCELoss}{#1}{xor} & \getacc{2}{1e-05}{2000}{BCELoss}{#1}{xor} & \getacc{4}{1e-05}{2000}{BCELoss}{#1}{xor} & \getacc{8}{1e-05}{2000}{BCELoss}{#1}{xor} & \getacc{16}{1e-05}{2000}{BCELoss}{#1}{xor} & \getacc{32}{1e-05}{2000}{BCELoss}{#1}{xor} \\
+            0.1     & \getacc{1}{0.1}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{2}{0.1}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{4}{0.1}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{8}{0.1}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{16}{0.1}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{32}{0.1}{2000}{BCELoss}{#1}{SGD}{xor} \\
+            0.01    & \getacc{1}{0.01}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{2}{0.01}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{4}{0.01}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{8}{0.01}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{16}{0.01}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{32}{0.01}{2000}{BCELoss}{#1}{SGD}{xor} \\
+            0.001   & \getacc{1}{0.001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{2}{0.001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{4}{0.001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{8}{0.001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{16}{0.001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{32}{0.001}{2000}{BCELoss}{#1}{SGD}{xor} \\
+            0.0001  & \getacc{1}{0.0001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{2}{0.0001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{4}{0.0001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{8}{0.0001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{16}{0.0001}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{32}{0.0001}{2000}{BCELoss}{#1}{SGD}{xor} \\
+            0.00001 & \getacc{1}{1e-05}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{2}{1e-05}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{4}{1e-05}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{8}{1e-05}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{16}{1e-05}{2000}{BCELoss}{#1}{SGD}{xor} & \getacc{32}{1e-05}{2000}{BCELoss}{#1}{SGD}{xor} \\
             \hline
         \end{tabular}
 
@@ -33,11 +33,11 @@
             \cline{2-7}
             & \textbf{1} & \textbf{2} & \textbf{4} & \textbf{8} & \textbf{16} & \textbf{32} \\
             \hline
-            0.1     & \getacc{1}{0.1}{2000}{BCELoss}{#1}{linear} & \getacc{2}{0.1}{2000}{BCELoss}{#1}{linear} & \getacc{4}{0.1}{2000}{BCELoss}{#1}{linear} & \getacc{8}{0.1}{2000}{BCELoss}{#1}{linear} & \getacc{16}{0.1}{2000}{BCELoss}{#1}{linear} & \getacc{32}{0.1}{2000}{BCELoss}{#1}{linear} \\
-            0.01    & \getacc{1}{0.01}{2000}{BCELoss}{#1}{linear} & \getacc{2}{0.01}{2000}{BCELoss}{#1}{linear} & \getacc{4}{0.01}{2000}{BCELoss}{#1}{linear} & \getacc{8}{0.01}{2000}{BCELoss}{#1}{linear} & \getacc{16}{0.01}{2000}{BCELoss}{#1}{linear} & \getacc{32}{0.01}{2000}{BCELoss}{#1}{linear} \\
-            0.001   & \getacc{1}{0.001}{2000}{BCELoss}{#1}{linear} & \getacc{2}{0.001}{2000}{BCELoss}{#1}{linear} & \getacc{4}{0.001}{2000}{BCELoss}{#1}{linear} & \getacc{8}{0.001}{2000}{BCELoss}{#1}{linear} & \getacc{16}{0.001}{2000}{BCELoss}{#1}{linear} & \getacc{32}{0.001}{2000}{BCELoss}{#1}{linear} \\
-            0.0001  & \getacc{1}{0.0001}{2000}{BCELoss}{#1}{linear} & \getacc{2}{0.0001}{2000}{BCELoss}{#1}{linear} & \getacc{4}{0.0001}{2000}{BCELoss}{#1}{linear} & \getacc{8}{0.0001}{2000}{BCELoss}{#1}{linear} & \getacc{16}{0.0001}{2000}{BCELoss}{#1}{linear} & \getacc{32}{0.0001}{2000}{BCELoss}{#1}{linear} \\
-            0.00001 & \getacc{1}{1e-05}{2000}{BCELoss}{#1}{linear} & \getacc{2}{1e-05}{2000}{BCELoss}{#1}{linear} & \getacc{4}{1e-05}{2000}{BCELoss}{#1}{linear} & \getacc{8}{1e-05}{2000}{BCELoss}{#1}{linear} & \getacc{16}{1e-05}{2000}{BCELoss}{#1}{linear} & \getacc{32}{1e-05}{2000}{BCELoss}{#1}{linear} \\
+            0.1     & \getacc{1}{0.1}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{2}{0.1}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{4}{0.1}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{8}{0.1}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{16}{0.1}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{32}{0.1}{2000}{BCELoss}{#1}{SGD}{linear} \\
+            0.01    & \getacc{1}{0.01}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{2}{0.01}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{4}{0.01}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{8}{0.01}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{16}{0.01}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{32}{0.01}{2000}{BCELoss}{#1}{SGD}{linear} \\
+            0.001   & \getacc{1}{0.001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{2}{0.001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{4}{0.001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{8}{0.001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{16}{0.001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{32}{0.001}{2000}{BCELoss}{#1}{SGD}{linear} \\
+            0.0001  & \getacc{1}{0.0001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{2}{0.0001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{4}{0.0001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{8}{0.0001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{16}{0.0001}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{32}{0.0001}{2000}{BCELoss}{#1}{SGD}{linear} \\
+            0.00001 & \getacc{1}{1e-05}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{2}{1e-05}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{4}{1e-05}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{8}{1e-05}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{16}{1e-05}{2000}{BCELoss}{#1}{SGD}{linear} & \getacc{32}{1e-05}{2000}{BCELoss}{#1}{SGD}{linear} \\
             \hline
         \end{tabular}
 
