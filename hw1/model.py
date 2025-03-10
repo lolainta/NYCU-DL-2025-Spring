@@ -13,4 +13,11 @@ class MLP:
         return self.fc3(x)  # No activation at the output layer
 
     def parameters(self):
-        return [self.fc1.W, self.fc1.b, self.fc2.W, self.fc2.b, self.fc3.W, self.fc3.b]
+        """Automatically collect all Tensor parameters from layers"""
+        params = []
+        for layer in self.__dict__.values():
+            if hasattr(layer, "__dict__"):  # Check if it's an object with attributes
+                for param in layer.__dict__.values():
+                    if isinstance(param, torch.Tensor):  # Only include Tensors
+                        params.append(param)
+        return params

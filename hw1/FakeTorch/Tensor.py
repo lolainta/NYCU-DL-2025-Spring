@@ -33,7 +33,7 @@ class Tensor:
 
     def zero_grad(self):
         if self.requires_grad:
-            self.grad = np.zeros_like(self.data)
+            self.grad.fill(0)
 
     def item(self):
         return self.data.item()
