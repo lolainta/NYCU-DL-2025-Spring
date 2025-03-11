@@ -1,0 +1,40 @@
+\subsection{Different Learning Rates}
+\label{sec:discussion_learning_rate}
+
+I tried to train the model with different learning rates.
+The results are shown in Table \ref{tab:comparison_matrix_sigmoid_SGD}.
+
+We can conclude that with a lower learning rate, the model cannot achieve a good accuracy.
+This is because the model converges too slowly.
+The reason is that the model updates too slow such that it is still not converged after 2000 epochs when looking at the loss curve.
+Therefore, the best learning rate is 0.01 for both XOR and linear datasets.
+
+\subsection{Different Number of Hidden Units}
+
+I also tried to train the model with different numbers of hidden units.
+The results are shown in Table \ref{tab:comparison_matrix_sigmoid_SGD}.
+
+We can conclude that the model with 4 hidden units is good enough for both XOR and linear datasets when the model are trained to converged (enough learning rate or epochs).
+The more hidden units, the more complex the model is, which also means the more parameters the model has.
+That will cause the training process to be slower and the model to be more likely to overfit.
+
+However, in this homework, we will have the same dataset for both training and testing.
+That is, we will not observe the overfitting problem.
+\comparisontable{sigmoid}{SGD}
+
+\subsection{Without Activation Function}
+\label{sec:discussion_without_activation_function}
+
+I also tried to train the model without an activation function.
+The results are shown in Table \ref{tab:comparison_matrix_none_SGD}.
+
+
+For this experiment, I used the same hyperparameters as the previous experiments except that the activation function is not used.
+From the implementation details, I implemented a identity function as the activation function to mimic the model without an activation function.
+
+It is interesting that the model without an activation function can achieve 100\% accuracy on the linear datasets.
+However, the model cannot achieve good results on the XOR dataset.
+This is because the model without an activation function is a linear model.
+The XOR dataset is not linearly separable, so the model cannot achieve good results on the XOR dataset.
+
+\comparisontable{none}{SGD}

@@ -1,0 +1,44 @@
+\subsection{Different Optimizers}
+
+\comparisontable{sigmoid}{Adam}
+
+For the optimizers, I choosed to implement the Adam optimizer.
+The experimental results for Adam are shown in Table \ref{tab:comparison_matrix_sigmoid_Adam}.
+
+
+\subsection{Different Activation Functions}
+
+For this experiment, we will compare the performance of different activation on both the linear and XOR datasets.
+The activation functions we will compare are:
+\begin{itemize}
+    \item Sigmoid
+    \item ReLU
+    \item Tanh
+    \item Identity (No activation function)
+\end{itemize}
+
+The experimental results for sigmoid and Identity are shown previously in Table \ref{tab:comparison_matrix_sigmoid_SGD} and Table \ref{tab:comparison_matrix_none_SGD}.
+
+The experimental results for ReLU and Tanh are shown in Table \ref{tab:comparison_matrix_relu_SGD} and Table \ref{tab:comparison_matrix_tanh_SGD}.
+
+\comparisontable{relu}{SGD}
+\comparisontable{tanh}{SGD}
+
+\subsection{Implement Convolutional Layers}
+
+I also implemented the convolutional layers in the model.
+And the performance of the model with convolutional layers can also achieve 100\% accuracy on the linear dataset with the following hyperparameters:
+
+\begin{itemize}
+    \item Architecture: Convolutional Neural Network
+    \item Learning rate: 0.1
+    \item Number of epochs: 2000
+    \item Activation function: Tanh
+    \item Loss function: Binary Cross Entropy
+    \item Optimizer: Adam
+    \item Dataset: Linear
+\end{itemize}
+
+The implementation details are shown bellows:
+
+\inputminted[firstline=41,lastline=62]{python}{../model.py}
