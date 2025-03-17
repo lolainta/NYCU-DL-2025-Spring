@@ -2,10 +2,10 @@ import os
 import torch
 import shutil
 import numpy as np
-
 from PIL import Image
 from tqdm import tqdm
 from urllib.request import urlretrieve
+from icecream import ic
 
 
 class OxfordPetDataset(torch.utils.data.Dataset):
@@ -39,7 +39,6 @@ class OxfordPetDataset(torch.utils.data.Dataset):
         sample = dict(image=image, mask=mask, trimap=trimap)
         if self.transform is not None:
             sample = self.transform(**sample)
-
         return sample
 
     @staticmethod
@@ -88,13 +87,22 @@ class SimpleOxfordPetDataset(OxfordPetDataset):
 
         # resize images
         image = np.array(
-            Image.fromarray(sample["image"]).resize((256, 256), Image.BILINEAR)
+            Image.fromarray(sample["image"]).resize(
+                (256, 256),
+                Image.Resampling.BILINEAR,
+            )
         )
         mask = np.array(
-            Image.fromarray(sample["mask"]).resize((256, 256), Image.NEAREST)
+            Image.fromarray(sample["mask"]).resize(
+                (256, 256),
+                Image.Resampling.NEAREST,
+            )
         )
         trimap = np.array(
-            Image.fromarray(sample["trimap"]).resize((256, 256), Image.NEAREST)
+            Image.fromarray(sample["trimap"]).resize(
+                (256, 256),
+                Image.Resampling.NEAREST,
+            )
         )
 
         # convert to other format HWC -> CHW
