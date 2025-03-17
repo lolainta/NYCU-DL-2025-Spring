@@ -1,103 +1,95 @@
 import argparse
-import torch
-from icecream import ic
-import numpy as np
-from tqdm import tqdm, trange
-from PIL import Image
-from torch.utils.data import DataLoader
 import os
 import os.path as osp
 import datetime
+import numpy as np
+import torch
+from icecream import ic
+from tqdm import tqdm, trange
+from torch import nn
+from torchmetrics import Dice
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
-from oxford_pet import OxfordPetDataset, SimpleOxfordPetDataset
+from oxford_pet import load_dataset
 from models.unet import UNet
-from utils import dice_score, set_seed
+from evaluate import evaluate
+from utils import set_seed, show_result, dice_score
+
 
 ic.configureOutput(prefix="ic|", includeContext=True)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
-def trans(image, mask, trimap):
-    ic.disable()
-    ic(image.shape, mask.shape, trimap.shape)
-    ret_image = np.array(
-        Image.fromarray(image).resize((572, 572)), dtype=np.float32
-    ).reshape((3, 572, 572))
-    ret_mask = np.array(
-        Image.fromarray(mask).resize((388, 388)), dtype=np.int64
-    ).reshape((388, 388))
-    ret_trimap = np.array(
-        Image.fromarray(trimap).resize((388, 388)), dtype=np.float32
-    ).reshape((1, 388, 388))
-    ic(ret_image.shape, ret_mask.shape, ret_trimap.shape)
-    ic.enable()
-    return dict(image=ret_image, mask=ret_mask, trimap=ret_trimap)
 
 
 def train(args):
     ic(args)
-
-    config_fname = osp.join(args.out_dir, "config.txt")
-    with open(config_fname, "w") as f:
-        f.write(str(args))
-
-    train_data = OxfordPetDataset(
-        root=args.data_path,
-        mode="train",
-        transform=trans,
-    )
+    writer = SummaryWriter(log_dir=f"{args.out_dir}/logs")
+    train_data = load_dataset(args.data_path, "train")
     train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
 
-    model = UNet().to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate)
-    criterion = torch.nn.CrossEntropyLoss()  # Logits expected, applies softmax
+    val_data = load_dataset(args.data_path, "valid")
+    val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False)
 
+    model = UNet(3, 1).to(device)
+    # ic(model)
+    optimizer = torch.optim.Adam(
+        model.parameters(),
+        lr=args.learning_rate,
+    )
+
+    criterion = nn.BCELoss()
+
+    best_dice_score = 0
+
+    cnt = 0
     for epoch in trange(args.epochs, desc="Epochs", position=0):
+        model.train()
+
+        train_loss_hist = []
+        train_dice_hist = []
+
         for data in tqdm(train_loader, desc="Batches", position=1):
             img = data["image"].to(device)
             gt_mask = data["mask"].to(device)
 
-            pred = model(img)
-            # pred_mask = pixel-wise softmax
-            # pred_mask = torch.softmax(pred, dim=1)
-            # pred_mask = torch.argmax(pred_mask, dim=1)
+            pred = model(img).squeeze(1)
+            loss = criterion(pred, gt_mask.float())
+            dice = dice_score(pred, gt_mask)
+            # tqdm.write(f"Loss: {loss.item():.4f}, Dice: {dice:.4f}")
 
-            # loss = loss_fn(pred_mask, gt_mask)
-            loss = criterion(pred, gt_mask)
-            score = dice_score(pred, gt_mask)
-            tqdm.write(f"Loss: {loss.item()}, Dice Score: {score.item()}")
+            writer.add_scalar("Loss/train", loss.item(), cnt)
+            writer.add_scalar("Dice/train", dice, cnt)
+
+            train_loss_hist.append(loss.item())
+            train_dice_hist.append(dice.detach().cpu().numpy())
 
             optimizer.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
+
+            cnt += 1
+
+        train_loss = np.mean(train_loss_hist)
+        train_dice = np.mean(train_dice_hist)
+
+        val_loss, val_dice = evaluate(model, val_loader, device, epoch, args)
+
+        tqdm.write(
+            f"Epoch: {epoch+1}/{args.epochs}, Train Loss: {np.mean(train_loss):.4f}, Train Dice: {np.mean(train_dice):.4f}, Val Loss: {val_loss:.4f}, Val Dice: {val_dice:.4f}"
+        )
 
         torch.save(model.state_dict(), osp.join(args.out_dir, f"model_{epoch}.pth"))
 
+        writer.add_scalar("Loss/val", val_loss, epoch)
+        writer.add_scalar("Dice/val", val_dice, epoch)
+
+        if val_dice > best_dice_score:
+            best_dice_score = val_dice
+            tqdm.write(f"Saving best model with Dice Score: {best_dice_score:.4f}")
+            torch.save(model.state_dict(), osp.join(args.out_dir, "best_model.pth"))
+
     torch.save(model.state_dict(), osp.join(args.out_dir, "model.pth"))
-
-
-def test(args):
-    ic(args)
-    test_data = OxfordPetDataset(
-        root=args.data_path,
-        mode="test",
-        transform=trans,
-    )
-
-    test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
-
-    model = UNet().to(device)
-    model.load_state_dict(torch.load(osp.join(args.out_dir, "model.pth")))
-
-    scores = []
-    for data in tqdm(test_loader, desc="Testing", position=0):
-        pred = model(data["image"].to(device))
-        score = dice_score(pred, data["mask"].to(device))
-        scores.append(score.item())
-
-    scores = np.array(scores)
-    print(f"Average Dice Score: {np.mean(scores)}")
 
 
 def get_args():
@@ -114,21 +106,21 @@ def get_args():
         "--epochs",
         "-e",
         type=int,
-        default=5,
+        default=30,
         help="number of epochs",
     )
     parser.add_argument(
         "--batch_size",
         "-b",
         type=int,
-        default=1,
+        default=8,
         help="batch size",
     )
     parser.add_argument(
         "--learning-rate",
         "-lr",
         type=float,
-        default=1e-5,
+        default=1e-3,
         help="learning rate",
     )
     parser.add_argument(
@@ -138,8 +130,20 @@ def get_args():
         default=datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"),
         help="output directory",
     )
-    parser.add_argument("--seed", "-s", type=int, default=42, help="random seed")
-
+    parser.add_argument(
+        "--seed",
+        "-s",
+        type=int,
+        default=42,
+        help="random seed",
+    )
+    parser.add_argument(
+        "--mode",
+        "-m",
+        type=str,
+        default="train",
+        choices=["train", "test"],
+    )
     return parser.parse_args()
 
 
@@ -157,7 +161,15 @@ if __name__ == "__main__":
 
     ic(args)
 
+    config_fname = osp.join(args.out_dir, "config.txt")
+    with open(config_fname, "w") as f:
+        f.write(str(args))
+
     # OxfordPetDataset.download(args.data_path)
-    #
-    train(args)
-    test(args)
+
+    if args.mode == "train":
+        train(args)
+    elif args.mode == "test":
+        test(args)
+    else:
+        assert False, "Invalid mode"

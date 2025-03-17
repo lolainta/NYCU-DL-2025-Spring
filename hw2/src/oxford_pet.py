@@ -2,6 +2,7 @@ import os
 import torch
 import shutil
 import numpy as np
+import albumentations as A
 from PIL import Image
 from tqdm import tqdm
 from urllib.request import urlretrieve
@@ -26,7 +27,6 @@ class OxfordPetDataset(torch.utils.data.Dataset):
         return len(self.filenames)
 
     def __getitem__(self, idx):
-
         filename = self.filenames[idx]
         image_path = os.path.join(self.images_directory, filename + ".jpg")
         mask_path = os.path.join(self.masks_directory, filename + ".png")
@@ -36,7 +36,7 @@ class OxfordPetDataset(torch.utils.data.Dataset):
         trimap = np.array(Image.open(mask_path))
         mask = self._preprocess_mask(trimap)
 
-        sample = dict(image=image, mask=mask, trimap=trimap)
+        sample = dict(image=image, mask=mask, trimap=trimap, fname=filename)
         if self.transform is not None:
             sample = self.transform(**sample)
         return sample
@@ -124,6 +124,7 @@ def download_url(url, filepath):
     directory = os.path.dirname(os.path.abspath(filepath))
     os.makedirs(directory, exist_ok=True)
     if os.path.exists(filepath):
+        print("Filepath already exists. Skipping download.")
         return
 
     with TqdmUpTo(
@@ -144,7 +145,28 @@ def extract_archive(filepath):
         shutil.unpack_archive(filepath, extract_dir)
 
 
-def load_dataset(data_path, mode):
-    # implement the load dataset function here
+def trans(image, mask, trimap, fname):
+    ic.disable()
+    size = 256
+    ic(image.shape, mask.shape, trimap.shape)
+    ret_image = np.array(
+        Image.fromarray(image).resize((size, size)), dtype=np.float32
+    ).reshape((3, size, size))
+    ret_mask = np.array(
+        Image.fromarray(mask).resize((size, size)), dtype=np.int64
+    ).reshape((size, size))
+    ret_trimap = np.array(
+        Image.fromarray(trimap).resize((size, size)), dtype=np.float32
+    ).reshape((1, size, size))
+    ic(ret_image.shape, ret_mask.shape, ret_trimap.shape)
+    ic.enable()
+    return dict(image=ret_image, mask=ret_mask, trimap=ret_trimap, fname=fname)
 
-    assert False, "Not implemented yet!"
+
+def load_dataset(data_path, mode):
+    dataset = OxfordPetDataset(
+        root=data_path,
+        mode=mode,
+        transform=trans,
+    )
+    return dataset

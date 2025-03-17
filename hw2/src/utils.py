@@ -1,38 +1,28 @@
-import torch
-from torch import tensor
-from icecream import ic
 import numpy as np
-
-
-def dice_score(pred, target, threshold=0.5, eps=1e-6):
-    """
-    Compute Dice Score for binary segmentation.
-    Args:
-      pred: Tensor of shape (N, 2, H, W), raw logits.
-      target: Tensor of shape (N, H, W), containing {0,1}.
-      threshold: Threshold for converting logits to binary mask.
-      eps: Small value to avoid division by zero.
-    Returns:
-      Dice coefficient (scalar).
-    """
-    # Apply softmax and take the foreground channel (index 1)
-    pred = torch.softmax(pred, dim=1)[:, 1, :, :]  # Shape: (N, H, W)
-
-    # Convert to binary mask
-    pred_bin = (pred > threshold).float()
-    target = target.float()
-
-    intersection = (pred_bin * target).sum(dim=(1, 2))  # Per image
-    union = pred_bin.sum(dim=(1, 2)) + target.sum(dim=(1, 2))  # Per image
-
-    dice = (2.0 * intersection + eps) / (union + eps)
-    return dice.mean()  # Average over batch
-
-
-def dice_loss(pred_mask, gt_mask):
-    return 1 - dice_score(pred_mask, gt_mask)
+import os
+import torch
+from PIL import Image
+from icecream import ic
+from torch import tensor
+from torch import nn
 
 
 def set_seed(seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
+
+
+def show_result(img, gt_mask, pred, out_dir):
+    os.makedirs(out_dir, exist_ok=True)
+
+    Image.fromarray(img).save(out_dir + "/input.png")
+    Image.fromarray((gt_mask * 255).astype(np.uint8)).save(out_dir + "/gt_mask.png")
+    Image.fromarray((pred * 255).astype(np.uint8)).save(out_dir + "/pred_mask.png")
+
+
+def dice_score(pred, target):
+    smooth = 1e-6
+    pred = pred.contiguous().view(-1)
+    target = target.contiguous().view(-1)
+    intersection = (pred * target).sum()
+    return (2.0 * intersection + smooth) / (pred.sum() + target.sum() + smooth)
