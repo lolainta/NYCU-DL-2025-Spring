@@ -17,7 +17,6 @@ from utils import set_seed, dice_score
 
 
 ic.configureOutput(prefix="ic|", includeContext=True)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def train(args):
@@ -29,7 +28,7 @@ def train(args):
     val_data = load_dataset(args.data_path, "valid")
     val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False)
 
-    model = UNet(3, 1).to(device)
+    model = UNet(3, 1).to(args.device)
     # ic(model)
     optimizer = torch.optim.Adam(
         model.parameters(),
@@ -48,8 +47,8 @@ def train(args):
         train_dice_hist = []
 
         for data in tqdm(train_loader, desc="Batches", position=1):
-            img = data["image"].to(device)
-            gt_mask = data["mask"].to(device)
+            img = data["image"].to(args.device)
+            gt_mask = data["mask"].to(args.device)
 
             pred = model(img).squeeze(1)
             loss = criterion(pred, gt_mask.float())
@@ -57,10 +56,10 @@ def train(args):
             # tqdm.write(f"Loss: {loss.item():.4f}, Dice: {dice:.4f}")
 
             writer.add_scalar("Loss/train", loss.item(), cnt)
-            writer.add_scalar("Dice/train", dice, cnt)
+            writer.add_scalar("Dice/train", dice.item(), cnt)
 
             train_loss_hist.append(loss.item())
-            train_dice_hist.append(dice.detach().cpu().numpy())
+            train_dice_hist.append(dice.item())
 
             optimizer.zero_grad()
             loss.backward()
@@ -72,7 +71,7 @@ def train(args):
         train_loss = np.mean(train_loss_hist)
         train_dice = np.mean(train_dice_hist)
 
-        val_loss, val_dice = evaluate(model, val_loader, device, epoch, args)
+        val_loss, val_dice = evaluate(model, val_loader, args)
 
         tqdm.write(
             f"Epoch: {epoch+1}/{args.epochs}, Train Loss: {np.mean(train_loss):.4f}, Train Dice: {np.mean(train_dice):.4f}, Val Loss: {val_loss:.4f}, Val Dice: {val_dice:.4f}"
@@ -136,13 +135,6 @@ def get_args():
         default=42,
         help="random seed",
     )
-    parser.add_argument(
-        "--mode",
-        "-m",
-        type=str,
-        default="train",
-        choices=["train", "test"],
-    )
     return parser.parse_args()
 
 
@@ -152,7 +144,7 @@ if __name__ == "__main__":
     out_dir = osp.join("log", args.output_dir)
     os.makedirs(out_dir, exist_ok=True)
 
-    args.device = device
+    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.out_dir = out_dir
     args.seed = set_seed(args.seed)
 
@@ -165,10 +157,4 @@ if __name__ == "__main__":
         f.write(str(args))
 
     # OxfordPetDataset.download(args.data_path)
-
-    if args.mode == "train":
-        train(args)
-    elif args.mode == "test":
-        test(args)
-    else:
-        assert False, "Invalid mode"
+    train(args)
