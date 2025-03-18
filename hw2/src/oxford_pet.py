@@ -11,9 +11,7 @@ from icecream import ic
 
 class OxfordPetDataset(torch.utils.data.Dataset):
     def __init__(self, root, mode="train", transform=None):
-
         assert mode in {"train", "valid", "test"}
-
         self.root = root
         self.mode = mode
         self.transform = transform
@@ -38,7 +36,16 @@ class OxfordPetDataset(torch.utils.data.Dataset):
 
         sample = dict(image=image, mask=mask, trimap=trimap, fname=filename)
         if self.transform is not None:
-            sample = self.transform(**sample)
+            transformed = self.transform(
+                image=sample["image"],
+                mask=sample["mask"],
+            )
+            transformed["fname"] = sample["fname"]
+            transformed["image"] = (
+                transformed["image"].transpose(2, 0, 1).astype(np.float32)
+            )
+            return transformed
+        raise ValueError("Transform is not defined")
         return sample
 
     @staticmethod
@@ -145,28 +152,19 @@ def extract_archive(filepath):
         shutil.unpack_archive(filepath, extract_dir)
 
 
-def trans(image, mask, trimap, fname):
-    ic.disable()
-    size = 256
-    ic(image.shape, mask.shape, trimap.shape)
-    ret_image = np.array(
-        Image.fromarray(image).resize((size, size)), dtype=np.float32
-    ).reshape((3, size, size))
-    ret_mask = np.array(
-        Image.fromarray(mask).resize((size, size)), dtype=np.int64
-    ).reshape((size, size))
-    ret_trimap = np.array(
-        Image.fromarray(trimap).resize((size, size)), dtype=np.float32
-    ).reshape((1, size, size))
-    ic(ret_image.shape, ret_mask.shape, ret_trimap.shape)
-    ic.enable()
-    return dict(image=ret_image, mask=ret_mask, trimap=ret_trimap, fname=fname)
-
-
 def load_dataset(data_path, mode):
+    transform = A.Compose(
+        [
+            A.Resize(height=256, width=256),
+            A.HorizontalFlip(p=0.5),
+            A.RandomBrightnessContrast(p=0.2),
+        ],
+        seed=137,
+        strict=True,
+    )
     dataset = OxfordPetDataset(
         root=data_path,
         mode=mode,
-        transform=trans,
+        transform=transform,
     )
     return dataset

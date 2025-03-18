@@ -7,14 +7,13 @@ import torch
 from icecream import ic
 from tqdm import tqdm, trange
 from torch import nn
-from torchmetrics import Dice
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from oxford_pet import load_dataset
 from models.unet import UNet
 from evaluate import evaluate
-from utils import set_seed, show_result, dice_score
+from utils import set_seed, dice_score
 
 
 ic.configureOutput(prefix="ic|", includeContext=True)
@@ -157,7 +156,7 @@ if __name__ == "__main__":
     args.out_dir = out_dir
     args.seed = set_seed(args.seed)
 
-    args.output_dir = None
+    delattr(args, "output_dir")
 
     ic(args)
 
