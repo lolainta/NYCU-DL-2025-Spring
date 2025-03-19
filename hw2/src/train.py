@@ -13,7 +13,7 @@ from torch.utils.tensorboard import SummaryWriter
 from oxford_pet import load_dataset
 from models.unet import UNet
 from evaluate import evaluate
-from utils import set_seed, dice_score
+from utils import set_seed, dice_score, BCEDiceLoss
 
 
 ic.configureOutput(prefix="ic|", includeContext=True)
@@ -32,7 +32,7 @@ def train(args):
     # ic(model)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
-    criterion = nn.BCELoss()
+    criterion = BCEDiceLoss()
 
     best_dice_score = 0
 
