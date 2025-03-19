@@ -30,11 +30,7 @@ def train(args):
 
     model = UNet(3, 1).to(args.device)
     # ic(model)
-    optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=args.learning_rate,
-        weight_decay=1e-5,
-    )
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     criterion = nn.BCELoss()
 
@@ -120,21 +116,21 @@ def get_args():
         "--epochs",
         "-e",
         type=int,
-        default=30,
+        default=100,
         help="number of epochs",
     )
     parser.add_argument(
         "--batch_size",
         "-b",
         type=int,
-        default=8,
+        default=32,
         help="batch size",
     )
     parser.add_argument(
         "--learning-rate",
         "-lr",
         type=float,
-        default=1e-3,
+        default=1e-4,
         help="learning rate",
     )
     parser.add_argument(
