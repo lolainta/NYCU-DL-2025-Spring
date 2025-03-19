@@ -1,16 +1,25 @@
+from tqdm import tqdm
 import torch
 from torch import nn
 
 from utils import dice_score
 
 
-def evaluate(net, dataloader, args):
+def evaluate(net, dataloader, args, position=1):
     criterion = nn.BCELoss()
     with torch.no_grad():
         net.eval()
         val_loss = []
         val_dice = []
-        for data in dataloader:
+        for data in tqdm(
+            dataloader,
+            desc="Evaluate",
+            dynamic_ncols=True,
+            position=position,
+            unit="imgs",
+            unit_scale=args.batch_size,
+            colour="yellow",
+        ):
             img = data["image"].to(args.device)
             gt_mask = data["mask"].to(args.device)
 

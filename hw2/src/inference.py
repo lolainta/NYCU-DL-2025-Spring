@@ -11,6 +11,8 @@ from oxford_pet import load_dataset
 from models.unet import UNet
 from utils import set_seed
 
+ic.configureOutput(prefix="ic|", includeContext=True)
+
 
 def test(args):
     ic(args)
@@ -20,7 +22,8 @@ def test(args):
     model = UNet(3, 1).to(args.device)
     model.load_state_dict(torch.load(args.model))
 
-    avg_loss, avg_dice = evaluate(model, test_loader, args)
+    print("Evaluating the model on the test set")
+    avg_loss, avg_dice = evaluate(model, test_loader, args, position=0)
     ic(avg_loss, avg_dice)
 
 

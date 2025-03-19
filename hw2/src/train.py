@@ -30,9 +30,10 @@ def train(args):
 
     model = UNet(3, 1).to(args.device)
     # ic(model)
-    optimizer = torch.optim.Adam(
+    optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=args.learning_rate,
+        weight_decay=1e-5,
     )
 
     criterion = nn.BCELoss()
@@ -40,13 +41,27 @@ def train(args):
     best_dice_score = 0
 
     cnt = 0
-    for epoch in trange(args.epochs, desc="Epochs", position=0):
+    for epoch in trange(
+        args.epochs,
+        desc="Epochs",
+        dynamic_ncols=True,
+        position=0,
+        colour="green",
+    ):
         model.train()
 
         train_loss_hist = []
         train_dice_hist = []
 
-        for data in tqdm(train_loader, desc="Batches", position=1):
+        for data in tqdm(
+            train_loader,
+            desc=f"Epoch {epoch}",
+            dynamic_ncols=True,
+            position=1,
+            unit="imgs",
+            unit_scale=args.batch_size,
+            colour="yellow",
+        ):
             img = data["image"].to(args.device)
             gt_mask = data["mask"].to(args.device)
 
@@ -71,6 +86,7 @@ def train(args):
         train_loss = np.mean(train_loss_hist)
         train_dice = np.mean(train_dice_hist)
 
+        tqdm.write("Evaluating on validation set")
         val_loss, val_dice = evaluate(model, val_loader, args)
 
         tqdm.write(
