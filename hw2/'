@@ -1,13 +1,14 @@
 import torch
 from torch import nn
+from icecream import ic
 
 from models.common import DoubleConv
 
 
 class ResNetBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, stride=1, downsample=False):
+    def __init__(self, in_channels, out_channels, downsample=False):
         super().__init__()
-        self.block = DoubleConv(in_channels, out_channels, stride)
+        self.block = DoubleConv(in_channels, out_channels)
         if downsample:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2),
@@ -16,8 +17,10 @@ class ResNetBlock(nn.Module):
         else:
             self.shortcut = nn.Identity()
 
+        self.seq = nn.Sequential(self.block, self.shortcut)
+
     def forward(self, x):
-        return self.block(x) + self.shortcut(x)
+        return self.seq(x)
 
 
 class ResUNet(nn.Module):
@@ -33,13 +36,7 @@ class ResUNet(nn.Module):
         self.block_nums = [3, 4, 6, 2]
         self.encoder = nn.ModuleList(
             [
-                self._make_layer(
-                    64,
-                    64,
-                    self.block_nums[0],
-                    stride=1,
-                    downsample=False,
-                ),  # 2 -> 2
+                self._make_layer(64, 64, self.block_nums[0], False),  # 2 -> 2
                 self._make_layer(64, 128, self.block_nums[1]),  # 2 -> 3
                 self._make_layer(128, 256, self.block_nums[2]),  # 3 -> 4
                 self._make_layer(256, 512, self.block_nums[3]),  # 4 -> 5
@@ -75,15 +72,19 @@ class ResUNet(nn.Module):
             nn.ConvTranspose2d(32, 32, kernel_size=2, stride=2),
             DoubleConv(32, 32),
             nn.Conv2d(32, out_channels, kernel_size=1),
-            nn.Sigmoid(),
         )
 
     def forward(self, x):
+        ic(x.shape)
         x1 = self.tail(x)  # 64
+        ic(x1.shape)
         x2 = self.encoder[0](x1)  # 64
+        ic(x2.shape)
         x3 = self.encoder[1](x2)  # 128
+        ic(x3.shape)
         x4 = self.encoder[2](x3)  # 256
         x5 = self.encoder[3](x4)  # 512
+        ic(x2.shape, x3.shape, x4.shape, x5.shape)
 
         x6 = self.center(x5)  # 256
 
@@ -98,10 +99,8 @@ class ResUNet(nn.Module):
 
         return self.head(x14)
 
-    def _make_layer(
-        self, in_channels, out_channels, num_blocks, stride=2, downsample=True
-    ):
-        layers = [ResNetBlock(in_channels, out_channels, stride, downsample)]
+    def _make_layer(self, in_channels, out_channels, num_blocks, downsample=True):
+        layers = [ResNetBlock(in_channels, out_channels, downsample=downsample)]
         for _ in range(1, num_blocks):
             layers.append(ResNetBlock(out_channels, out_channels))
         return nn.Sequential(*layers)

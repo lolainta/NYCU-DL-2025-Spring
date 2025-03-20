@@ -1,25 +1,10 @@
-from icecream import ic
 import torch
 from torch import nn
 
-
-class DoubleConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(DoubleConv, self).__init__()
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, 3, padding="same", bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(out_channels, out_channels, 3, padding="same", bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-        )
-
-    def forward(self, x):
-        return self.double_conv(x)
+from models.common import DoubleConv
 
 
-class UNet(torch.nn.Module):
+class UNet(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
         self.pool = nn.MaxPool2d(2)

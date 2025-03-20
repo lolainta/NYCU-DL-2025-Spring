@@ -6,12 +6,12 @@ import numpy as np
 import torch
 from icecream import ic
 from tqdm import tqdm, trange
-from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from oxford_pet import load_dataset
 from models.unet import UNet
+from models.resnet34_unet import ResUNet
 from evaluate import evaluate
 from utils import set_seed, dice_score, BCEDiceLoss
 
@@ -28,8 +28,14 @@ def train(args):
     val_data = load_dataset(args.data_path, "valid")
     val_loader = DataLoader(val_data, batch_size=args.batch_size, shuffle=False)
 
-    model = UNet(3, 1).to(args.device)
-    # ic(model)
+    match args.model:
+        case "unet":
+            model = UNet(3, 1).to(args.device)
+        case "resunet":
+            model = ResUNet(3, 1).to(args.device)
+        case _:
+            raise ValueError("Invalid model name")
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     criterion = BCEDiceLoss()
@@ -147,6 +153,20 @@ def get_args():
         default=42,
         help="random seed",
     )
+    parser.add_argument(
+        "--model",
+        "-m",
+        type=str,
+        default="unet",
+        help="model name",
+        choices=["unet", "resunet"],
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        help="device to run the model",
+    )
     return parser.parse_args()
 
 
@@ -156,7 +176,6 @@ if __name__ == "__main__":
     out_dir = osp.join("log", args.output_dir)
     os.makedirs(out_dir, exist_ok=True)
 
-    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     args.out_dir = out_dir
     args.seed = set_seed(args.seed)
 
