@@ -35,18 +35,17 @@ class OxfordPetDataset(torch.utils.data.Dataset):
         mask = self._preprocess_mask(trimap)
 
         sample = dict(image=image, mask=mask, trimap=trimap, fname=filename)
-        if self.transform is not None:
-            transformed = self.transform(
-                image=sample["image"],
-                mask=sample["mask"],
-            )
-            transformed["fname"] = sample["fname"]
-            transformed["image"] = (
-                transformed["image"].transpose(2, 0, 1).astype(np.float32)
-            )
-            return transformed
-        raise ValueError("Transform is not defined")
-        return sample
+
+        assert self.transform is not None, "Transform is not defined"
+        transformed = self.transform(
+            mask=sample["mask"],
+            image=sample["image"],
+        )
+        transformed["fname"] = sample["fname"]
+        transformed["image"] = (
+            transformed["image"].transpose(2, 0, 1).astype(np.float32)
+        )
+        return transformed
 
     @staticmethod
     def _preprocess_mask(mask):
@@ -61,15 +60,19 @@ class OxfordPetDataset(torch.utils.data.Dataset):
         with open(split_filepath) as f:
             split_data = f.read().strip("\n").split("\n")
         filenames = [x.split(" ")[0] for x in split_data]
-        if self.mode == "train":  # 90% for train
-            filenames = [x for i, x in enumerate(filenames) if i % 10 != 0]
-        elif self.mode == "valid":  # 10% for validation
-            filenames = [x for i, x in enumerate(filenames) if i % 10 == 0]
+        match self.mode:
+            case "train":
+                filenames = [x for i, x in enumerate(filenames) if i % 10 != 0]
+            case "valid":
+                filenames = [x for i, x in enumerate(filenames) if i % 10 == 0]
+            case "test":
+                filenames = filenames
+            case _:
+                raise ValueError(f"Invalid mode: {self.mode}")
         return filenames
 
     @staticmethod
     def download(root):
-
         # load images
         filepath = os.path.join(root, "images.tar.gz")
         download_url(

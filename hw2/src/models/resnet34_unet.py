@@ -73,7 +73,6 @@ class ResUNet(nn.Module):
 
         self.head = nn.Sequential(
             nn.ConvTranspose2d(32, 32, kernel_size=2, stride=2),
-            DoubleConv(32, 32),
             nn.Conv2d(32, out_channels, kernel_size=1),
             nn.Sigmoid(),
         )
