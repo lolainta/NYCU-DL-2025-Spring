@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from evaluate import evaluate
 from oxford_pet import load_dataset
 from models.unet import UNet
+from models.resnet34_unet import ResUNet
 from utils import set_seed
 
 ic.configureOutput(prefix="ic|", includeContext=True)
@@ -19,8 +20,15 @@ def test(args):
     test_data = load_dataset(args.data_path, "test")
     test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
 
-    model = UNet(3, 1).to(args.device)
-    model.load_state_dict(torch.load(args.model))
+    model = None
+    match args.model:
+        case "unet":
+            model = UNet(3, 1).to(args.device)
+        case "resunet":
+            model = ResUNet(3, 1).to(args.device)
+        case _:
+            raise ValueError("Invalid model name")
+    model.load_state_dict(torch.load(args.weight))
 
     print("Evaluating the model on the test set")
     avg_loss, avg_dice = evaluate(model, test_loader, args, position=0)
@@ -31,6 +39,13 @@ def get_args():
     parser = argparse.ArgumentParser(description="Predict masks from input images")
     parser.add_argument(
         "--model",
+        type=str,
+        default="unet",
+        choices=["unet", "resunet"],
+        help="model name",
+    )
+    parser.add_argument(
+        "--weight",
         default="best_model.pth",
         help="path to the stored model weoght",
     )
@@ -78,10 +93,10 @@ if __name__ == "__main__":
 
     delattr(args, "output_dir")
 
-    args.model = osp.join(args.out_dir, args.model)
+    args.weight = osp.join(args.out_dir, args.weight)
     ic(args)
-    if osp.exists(args.model) is False:
+    if osp.exists(args.weight) is False:
         parser.print_help()
-        parser.error(f"model weight not found: {args.model}")
+        parser.error(f"model weight not found: {args.weight}")
     # OxfordPetDataset.download(args.data_path)
     test(args)

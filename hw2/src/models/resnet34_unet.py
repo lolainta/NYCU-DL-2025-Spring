@@ -77,6 +77,19 @@ class ResUNet(nn.Module):
             nn.Sigmoid(),
         )
 
+    def _make_layer(
+        self,
+        in_channels,
+        out_channels,
+        num_blocks,
+        stride=2,
+        downsample=True,
+    ):
+        layers = [ResNetBlock(in_channels, out_channels, stride, downsample)]
+        for _ in range(1, num_blocks):
+            layers.append(ResNetBlock(out_channels, out_channels))
+        return nn.Sequential(*layers)
+
     def forward(self, x):
         x1 = self.tail(x)  # 64
         x2 = self.encoder[0](x1)  # 64
@@ -96,11 +109,3 @@ class ResUNet(nn.Module):
         x14 = self.decoder[3](x13)
 
         return self.head(x14)
-
-    def _make_layer(
-        self, in_channels, out_channels, num_blocks, stride=2, downsample=True
-    ):
-        layers = [ResNetBlock(in_channels, out_channels, stride, downsample)]
-        for _ in range(1, num_blocks):
-            layers.append(ResNetBlock(out_channels, out_channels))
-        return nn.Sequential(*layers)
