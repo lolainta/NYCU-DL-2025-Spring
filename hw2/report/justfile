@@ -9,6 +9,5 @@ pdf:
 # Clean auxiliary files
 clean:
     latexmk -c
-    rm -rf _minted-{{MAIN}}
+    rm -rf build/*
     rm -f report.pdf
-    rm -f build/*
