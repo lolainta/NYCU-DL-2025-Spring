@@ -4,8 +4,8 @@ In the basic experiment, I used experimented two models on the Oxford-IIIT Pet d
 
 For both models, I used the following hyperparameters:
 \begin{itemize}
-    \item Batch size: 32
-    \item Epochs: 200
+    \item Batch size: 8
+    \item Epochs: 100
     \item Optimizer: Adam
     \item Learning rate: $1 \times 10^{-4}$
     \item Scheduler: None
@@ -14,6 +14,9 @@ For both models, I used the following hyperparameters:
 
 The training and validation dice score for both models are shown in Figure~\ref{fig:train_val_dice}.
 The training and validation loss for both models are shown in Figure~\ref{fig:train_val_loss}.
+We can see that both models have similar performance on the validation set, which has dice score higher than 0.9 on the validation set.
+The training dice score is higher than the validation dice score, which is expected.
+The training loss is lower than the validation loss, which is also expected.
 
 \def \unetexpdir {../log/u1/}
 \def \resunetexpdir {../log/ru1/}
@@ -60,7 +63,6 @@ The training and validation loss for both models are shown in Figure~\ref{fig:tr
     \caption{Dice score on training and validation sets for both models}
     \label{fig:train_val_dice}
 \end{figure}
-
 
 \begin{figure}[ht]
     \centering

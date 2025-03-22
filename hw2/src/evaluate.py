@@ -5,10 +5,12 @@ from utils import dice_score
 
 
 def evaluate(net, dataloader, criterion, args, position=1):
+    val_loss = []
+    val_dice = []
+
+    net.eval()
+
     with torch.no_grad():
-        net.eval()
-        val_loss = []
-        val_dice = []
         for data in tqdm(
             dataloader,
             desc="Evaluate",

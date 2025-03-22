@@ -8,7 +8,7 @@ import torch
 from icecream import ic
 from tqdm import tqdm, trange
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 
 from oxford_pet import load_dataset
 from models.unet import UNet
@@ -25,6 +25,7 @@ def train(epoch, net, data_loader, criterion, optimizer, args):
     train_dice_hist = []
 
     net.train()
+
     for data in tqdm(
         data_loader,
         desc=f"Epoch {epoch+1}/{args.epochs}",
@@ -49,8 +50,8 @@ def train(epoch, net, data_loader, criterion, optimizer, args):
         torch.nn.utils.clip_grad_norm_(net.parameters(), 1.0)
         optimizer.step()
 
-    train_loss = np.mean(train_loss_hist)
-    train_dice = np.mean(train_dice_hist)
+    train_loss = float(np.mean(train_loss_hist))
+    train_dice = float(np.mean(train_dice_hist))
 
     return train_loss, train_dice
 
@@ -215,9 +216,9 @@ if __name__ == "__main__":
     os.makedirs(out_dir, exist_ok=True)
 
     args.out_dir = out_dir
-    set_seed(args.seed)
-
     delattr(args, "output_dir")
+
+    set_seed(args.seed)
 
     ic(args)
 

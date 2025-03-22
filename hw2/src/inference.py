@@ -1,6 +1,5 @@
 import argparse
 import datetime
-import os
 import os.path as osp
 from icecream import ic
 import torch
@@ -10,13 +9,12 @@ from evaluate import evaluate
 from oxford_pet import load_dataset
 from models.unet import UNet
 from models.resnet34_unet import ResUNet
-from utils import set_seed
+from utils import set_seed, BCEDiceLoss
 
 ic.configureOutput(prefix="ic|", includeContext=True)
 
 
 def test(args):
-    ic(args)
     test_data = load_dataset(args.data_path, "test")
     test_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=False)
 
@@ -30,25 +28,15 @@ def test(args):
             raise ValueError("Invalid model name")
     model.load_state_dict(torch.load(args.weight))
 
+    criterion = BCEDiceLoss()
+
     print("Evaluating the model on the test set")
-    avg_loss, avg_dice = evaluate(model, test_loader, args, position=0)
+    avg_loss, avg_dice = evaluate(model, test_loader, criterion, args, position=0)
     ic(avg_loss, avg_dice)
 
 
 def get_args():
     parser = argparse.ArgumentParser(description="Predict masks from input images")
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="unet",
-        choices=["unet", "resunet"],
-        help="model name",
-    )
-    parser.add_argument(
-        "--weight",
-        default="best_model.pth",
-        help="path to the stored model weoght",
-    )
     parser.add_argument(
         "--data_path",
         type=str,
@@ -59,7 +47,7 @@ def get_args():
         "--batch_size",
         "-b",
         type=int,
-        default=8,
+        default=32,
         help="batch size",
     )
     parser.add_argument(
@@ -76,7 +64,27 @@ def get_args():
         default=42,
         help="random seed",
     )
-
+    parser.add_argument(
+        "--model",
+        "-m",
+        type=str,
+        default="unet",
+        choices=["unet", "resunet"],
+        help="model name",
+    )
+    parser.add_argument(
+        "--weight",
+        "-w",
+        type=str,
+        default="best_model.pth",
+        help="path to the stored model weoght",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        help="device to use for inference",
+    )
     return parser
 
 
@@ -84,17 +92,15 @@ if __name__ == "__main__":
     parser = get_args()
     args = parser.parse_args()
 
-    out_dir = osp.join("log", args.output_dir)
-    os.makedirs(out_dir, exist_ok=True)
+    assert osp.exists(args.data_path), f"Data path not found: {args.data_path}"
 
-    args.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    args.out_dir = out_dir
-    args.seed = set_seed(args.seed)
-
+    args.out_dir = osp.join("log", args.output_dir)
     delattr(args, "output_dir")
+    args.seed = set_seed(args.seed)
 
     args.weight = osp.join(args.out_dir, args.weight)
     ic(args)
+
     if osp.exists(args.weight) is False:
         parser.print_help()
         parser.error(f"model weight not found: {args.weight}")
