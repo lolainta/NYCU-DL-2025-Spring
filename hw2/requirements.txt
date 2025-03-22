@@ -46,6 +46,7 @@ scipy==1.15.2
 setuptools==76.0.0
 simsimd==6.2.1
 six==1.17.0
+standard-imghdr==3.13.0
 stringzilla==3.12.3
 sympy==1.13.1
 tensorboard==2.19.0

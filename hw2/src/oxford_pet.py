@@ -34,14 +34,10 @@ class OxfordPetDataset(torch.utils.data.Dataset):
         trimap = np.array(Image.open(mask_path))
         mask = self._preprocess_mask(trimap)
 
-        sample = dict(image=image, mask=mask, trimap=trimap, fname=filename)
+        sample = dict(image=image, mask=mask)
 
         assert self.transform is not None, "Transform is not defined"
-        transformed = self.transform(
-            mask=sample["mask"],
-            image=sample["image"],
-        )
-        transformed["fname"] = sample["fname"]
+        transformed = self.transform(**sample)
         transformed["image"] = (
             transformed["image"].transpose(2, 0, 1).astype(np.float32)
         )
@@ -88,39 +84,6 @@ class OxfordPetDataset(torch.utils.data.Dataset):
             filepath=filepath,
         )
         extract_archive(filepath)
-
-
-class SimpleOxfordPetDataset(OxfordPetDataset):
-    def __getitem__(self, *args, **kwargs):
-
-        sample = super().__getitem__(*args, **kwargs)
-
-        # resize images
-        image = np.array(
-            Image.fromarray(sample["image"]).resize(
-                (256, 256),
-                Image.Resampling.BILINEAR,
-            )
-        )
-        mask = np.array(
-            Image.fromarray(sample["mask"]).resize(
-                (256, 256),
-                Image.Resampling.NEAREST,
-            )
-        )
-        trimap = np.array(
-            Image.fromarray(sample["trimap"]).resize(
-                (256, 256),
-                Image.Resampling.NEAREST,
-            )
-        )
-
-        # convert to other format HWC -> CHW
-        sample["image"] = np.moveaxis(image, -1, 0)
-        sample["mask"] = np.expand_dims(mask, 0)
-        sample["trimap"] = np.expand_dims(trimap, 0)
-
-        return sample
 
 
 class TqdmUpTo(tqdm):

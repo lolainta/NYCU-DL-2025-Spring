@@ -1,12 +1,10 @@
 from tqdm import tqdm
 import torch
-from torch import nn
 
 from utils import dice_score
 
 
-def evaluate(net, dataloader, args, position=1):
-    criterion = nn.BCELoss()
+def evaluate(net, dataloader, criterion, args, position=1):
     with torch.no_grad():
         net.eval()
         val_loss = []
