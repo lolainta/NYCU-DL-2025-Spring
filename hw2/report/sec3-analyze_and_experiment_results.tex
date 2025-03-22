@@ -11,4 +11,97 @@ For both models, I used the following hyperparameters:
     \item Scheduler: None
 \end{itemize}
 
-The experiment shows that both model can achieve a high accuracy on training set, validation set and test set. (More than 90\% accuracy)
+
+The training and validation dice score for both models are shown in Figure~\ref{fig:train_val_dice}.
+The training and validation loss for both models are shown in Figure~\ref{fig:train_val_loss}.
+
+\def \unetexpdir {../log/u1/}
+\def \resunetexpdir {../log/ru1/}
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+                width=\linewidth,
+                xlabel={Epoch},
+                ylabel={Dice Score},
+                % xmin=0,
+                % xmax=100,
+                height=0.5\linewidth,
+                grid=major,
+                title={Dice Score on Training/Validation Set},
+                legend style={at={(0.98,0.02)},anchor=south east},
+            ]
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=val_dice,
+                ]{\unetexpdir/epochs.csv};
+            \addlegendentry{Unet (Validation)}
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=val_dice,
+                ]{\resunetexpdir/epochs.csv};
+            \addlegendentry{ResUNet (Validation)}
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=train_dice,
+                ]{\unetexpdir/epochs.csv};
+            \addlegendentry{Unet (Training)}
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=train_dice,
+                ]{\resunetexpdir/epochs.csv};
+            \addlegendentry{ResUNet (Training)}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Dice score on training and validation sets for both models}
+    \label{fig:train_val_dice}
+\end{figure}
+
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+                width=\linewidth,
+                xlabel={Epoch},
+                ylabel={Loss},
+                % xmin=0,
+                % xmax=100,
+                height=0.5\linewidth,
+                grid=major,
+                title={Loss on Training/Validation Set},
+                % legend style={at={(1,1)},anchor=north east},
+            ]
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=val_loss,
+                ]{\unetexpdir/epochs.csv};
+            \addlegendentry{Unet (Validation)}
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=val_loss,
+                ]{\resunetexpdir/epochs.csv};
+            \addlegendentry{ResUNet (Validation)}
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=train_loss,
+                ]{\unetexpdir/epochs.csv};
+            \addlegendentry{Unet (Training)}
+            \addplot table [
+                    col sep=comma,
+                    x=epoch,
+                    y=train_loss,
+                ]{\resunetexpdir/epochs.csv};
+            \addlegendentry{ResUNet (Training)}
+        \end{axis}
+    \end{tikzpicture}
+    \caption{Loss on training and validation sets for both models}
+    \label{fig:train_val_loss}
+\end{figure}
