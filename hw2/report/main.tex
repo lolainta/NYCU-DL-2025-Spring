@@ -1,0 +1,67 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\usepackage{minted}
+\usepackage{xcolor}
+
+\definecolor{bgcolor}{rgb}{0.95, 0.95, 0.95}  % Light gray background for readability
+\setminted{
+    fontsize=\small,    % Adjust code font size
+    linenos=true,       % Enable line numbers
+    numbersep=5pt,      % Space between numbers and code
+    frame=single,       % Box around code
+    framesep=2mm,       % Padding inside the frame
+    bgcolor=bgcolor,    % Background color
+    breaklines=true,    % Line breaking
+    tabsize=4           % Consistent tab width
+}
+
+\usepackage[T1]{fontenc}
+\usepackage{inconsolata}
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{diagbox}
+
+\usepackage{biblatex}
+\addbibresource{references.bib}
+
+\title{Deep Learning Homework 2 Report}
+\author{Cheng-Liang Chi}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Implementation Details}
+\input{sec1-implementation_detials.tex}
+
+\section{Data Preprocessing}
+\input{sec2-data_preprocessing.tex}
+
+\section{Analyze and Experiment Results}
+\input{sec3-analyze_and_experiment_results.tex}
+
+\section{Execution Steps}
+\input{sec4-execution_steps.tex}
+
+\section{Discussion}
+\input{sec5-discussion.tex}
+
+
+% \section{References}
+% \nocite{*}
+\printbibliography
+
+\end{document}
