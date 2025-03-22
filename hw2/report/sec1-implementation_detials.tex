@@ -163,35 +163,17 @@ The other parts that are not highlighted are the steps that will not effect the 
 
 The implementation of the training loop is shown below:
 
-\inputminted[firstline=22, lastline=108, highlightlines={46,58,67-71,81-84}]{python}{../src/train.py}
+\inputminted[firstline=23, lastline=56, highlightlines={38,29,41,42,48-51}]{python}{../src/train.py}
 
-There are some useless features I have done in the training loop:
-\begin{itemize}
-    \item I tuned the arguments of \texttt{tqdm} to make the progress bar look better.
-          It has the following features:
-          \begin{itemize}
-              \item There are two progress bars that show the progress of the epoch and the progress of the batch.
-                    It will be shown in the last two lines in the terminal and will not conflict each other even with the training log.
-                    That is to say, the training log will be output in the middle of the terminal (the third line counting from the buttom).
-              \item The number of iterations of the progress bar of the current epoch will be shown as the number of images in the training dataset.
-                    This is because the number of iterations of the progress bar of the current epoch is the number of batches in the training dataset.
-                    And the number of images in the training dataset is the number of batches in the training dataset multiplied by the batch size.
-                    This is more intuitive for me to know how many images have been trained.
-              \item The progress bar will be reactive to the terminal size.
-                    With the default setting of \texttt{tqdm}, the progress bar will be fixed to the right side of the terminal.
-                    And if I accidentally resize the terminal, the progress bar will be broken and look ugly.
-                    However, with the tuned setting, the progress bar will be fixed to the right side of the terminal, but will be reactive to the terminal size.
-                    That is to say, the progress bar will be fixed to the right side of the terminal, but will not be broken if I resize the terminal.
-              \item The progress bar will be colorful. Two of the progress bars will be colored with the different colors to avoid confusion.
-          \end{itemize}
-\end{itemize}
+This train loop only responsible for an epoch of training.
+The training loop will be called in the \texttt{run} function in the \texttt{train.py} file.
+The \texttt{run} function will be called in the \texttt{main} function in the \texttt{train.py} file.
 
-The following figure shows the appearance of the progress bar:
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=0.8\textwidth]{./images/tqdm.png}
-    \caption{The appearance of the progress bar, the terminal is splited using my configured \texttt{tmux} settings. And the bottom plane is a beautiful resouce monitor called \texttt{btop++}.}
-\end{figure}
+The responsibility of the \texttt{main} function is to parse the arguments, set the random seed, set the device, set the output directory.
+And the responsibility of the \texttt{run} function is to set the model, optimizer, loss function, and data loader.
+It will not only call the training loop for each epoch, and call the evaluation function with the validation dataset loader after each epoch, and save the model weights if the validation Dice coefficient is improved.
+Not to mention, it will also log the training loss, validation loss, and validation Dice coefficient.
+
 
 \subsection{Validation}
 
@@ -211,7 +193,7 @@ This will save memory and computation time.
 
 The implementation of the validation loop is shown below, it is similar to the training loop except for the gradient calculation and parameter update:
 
-\inputminted[firstline=8]{python}{../src/evaluate.py}
+\inputminted[firstline=7]{python}{../src/evaluate.py}
 
 \subsection{Testing}
 
@@ -222,3 +204,50 @@ The only difference is that the testing loop will deal with the arguments diffen
 The implementation of the testing loop is shown below:
 
 \inputminted[firstline=18,lastline=35]{python}{../src/inference.py}
+
+\subsection{Useless Features}
+
+There are some useless features I have done for this homework, and I will list them below:
+
+\subsubsection{Progress Bar}
+
+I tuned the arguments of \texttt{tqdm} to make the progress bar look better.
+It has the following features:
+\begin{itemize}
+    \item There are two progress bars that show the progress of the epoch and the progress of the batch.
+          It will be shown in the last two lines in the terminal and will not conflict each other even with the training log.
+          That is to say, the training log will be output in the middle of the terminal (the third line counting from the buttom).
+    \item The number of iterations of the progress bar of the current epoch will be shown as the number of images in the training dataset.
+          This is because the number of iterations of the progress bar of the current epoch is the number of batches in the training dataset.
+          And the number of images in the training dataset is the number of batches in the training dataset multiplied by the batch size.
+          This is more intuitive for me to know how many images have been trained.
+    \item The progress bar will be reactive to the terminal size.
+          With the default setting of \texttt{tqdm}, the progress bar will be fixed to the right side of the terminal.
+          And if I accidentally resize the terminal, the progress bar will be broken and look ugly.
+          However, with the tuned setting, the progress bar will be fixed to the right side of the terminal, but will be reactive to the terminal size.
+          That is to say, the progress bar will be fixed to the right side of the terminal, but will not be broken if I resize the terminal.
+    \item The progress bar will be colorful. Two of the progress bars will be colored with the different colors to avoid confusion.
+\end{itemize}
+
+
+The following figure shows the appearance of the progress bar:
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{./images/tqdm.png}
+    \caption{The appearance of the progress bar, the terminal is splited using my configured \texttt{tmux} settings. And the bottom plane is a beautiful resouce monitor called \texttt{btop++}.}
+\end{figure}
+
+\subsubsection{Report Figure Generation}
+
+If you had seen the report of my last homework, you may notice that there are up to 10 tables different experiments' comparison.
+And each of the table has 5 columns and 5 rows, that is 25 cells that need to be filled with the numbers.
+I'm too lazy to fill the numbers manually, so I wrote some macros in the \LaTeX{} file to read the \texttt{accuracy.txt} file in the corresponding directory (according to the hyperparameters) and fill the numbers automatically.
+
+And I also did somthing similar in this homework.
+However, instead of inventing the wheels again, I used the \texttt{pgfplotstable} package to read the \texttt{epochs.csv} file and generate the figures automatically.
+The \texttt{epochs.csv} file is generated by the \texttt{train.py} file, and it contains the training loss, validation loss, and validation Dice coefficient of each epoch.
+The \texttt{pgfplotstable} package will read the \texttt{epochs.csv} file and generate the figures in the \LaTeX{} file.
+The generated figures are Figures~\ref{fig:train_val_dice} and~\ref{fig:train_val_loss}.
+You can see the \LaTeX{} source code for more details in both homeworks if you are interested.
+
+Tl;dr, I used the \texttt{pgfplotstable} package to generate the figures in the report automatically instead of using \texttt{matplotlib} to generate the figures by another python script.

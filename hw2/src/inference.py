@@ -26,6 +26,7 @@ def test(args):
             model = ResUNet(3, 1).to(args.device)
         case _:
             raise ValueError("Invalid model name")
+
     model.load_state_dict(torch.load(args.weight))
 
     criterion = BCEDiceLoss()
