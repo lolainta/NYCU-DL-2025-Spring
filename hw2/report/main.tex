@@ -20,6 +20,7 @@
 
 \usepackage[T1]{fontenc}
 \usepackage{inconsolata}
+\usepackage{newtxtext,newtxmath}
 
 \usepackage{graphicx}
 \usepackage{caption}
@@ -31,7 +32,11 @@
 \usepackage{array}
 \usepackage{diagbox}
 
-\usepackage{biblatex}
+\usepackage[
+    backend=biber,
+    style=ieee,
+    sorting=none
+]{biblatex}
 \addbibresource{references.bib}
 
 \title{Deep Learning Homework 2 Report}
@@ -59,8 +64,7 @@
 \section{Discussion}
 \input{sec5-discussion.tex}
 
-
-% \section{References}
+\section{References}
 % \nocite{*}
 \printbibliography
 
