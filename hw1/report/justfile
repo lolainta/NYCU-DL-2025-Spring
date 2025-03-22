@@ -4,7 +4,7 @@ MAIN := "main"
 # Compile with latexmk (automatically determines how many times to run pdflatex)
 pdf:
     latexmk -pdf -bibtex -shell-escape -interaction=nonstopmode {{MAIN}}.tex --output-directory=build
-    mv build/{{MAIN}}.pdf report.pdf
+    cp build/{{MAIN}}.pdf report.pdf
 
 # Compile with xelatex (for fonts and Unicode support)
 xelatex:
