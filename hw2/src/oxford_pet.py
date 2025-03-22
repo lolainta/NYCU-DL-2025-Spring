@@ -164,9 +164,18 @@ def load_dataset(data_path, mode):
             A.Rotate(limit=30, p=0.5),
             A.RandomBrightnessContrast(p=0.2),
             A.HueSaturationValue(
-                hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=0.2
+                hue_shift_limit=20,
+                sat_shift_limit=30,
+                val_shift_limit=20,
+                p=0.2,
             ),
-            A.RGBShift(r_shift_limit=15, g_shift_limit=15, b_shift_limit=15, p=0.2),
+            A.RGBShift(
+                r_shift_limit=15,
+                g_shift_limit=15,
+                b_shift_limit=15,
+                p=0.2,
+            ),
+            A.RandomGamma(gamma_limit=(80, 120), p=0.2),
         ],
         seed=137,
         strict=True,

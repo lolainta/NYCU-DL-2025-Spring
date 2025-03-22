@@ -1,1 +1,31 @@
+
+For data preprocessing, I first resized the images to $256 \times 256$ pixels.
+However, the model can perform very good while training on the training set but perform poorly on the validation set, which indicates that the model is overfitting and the model is not generalizing well.
+Therefore, I started to consider using data augmentation to improve the generalization of the model.
+
 \subsection{Data Augmentation}
+
+After surveying many libraries, I found that the Albumentations library~\cite{Albumentations} is a very powerful library for image augmentation.
+It is also suprised that the default code TA provided in \texttt{oxford\_pet.py} is very similar to the code in the official document of Albumentations.
+Therefore, I decided to use Albumentations to augment the data.
+
+The augmentation methods I used are as follows:
+
+\begin{itemize}
+    \item Resize: Resize the image to $256 \times 256$ pixels.
+    \item HorizontalFlip: Flip the image horizontally.
+    \item VerticalFlip: Flip the image vertically.
+    \item Rotate: Rotate the image by an angle.
+    \item RandomBrightnessContrast: Randomly change brightness and contrast of the image.
+    \item HueSaturationValue: Randomly change hue, saturation and value of the image.
+    \item RGBShift: Randomly shift values for each channel of the image.
+    \item RandomGamma: Randomly change gamma of the image.
+\end{itemize}
+
+The augmentation methods are randomly applied to the images during training.
+For testing and validation, only the resize operation is applied to the images.
+This can prevent the model from overfitting and improve the generalization of the model.
+
+The implementation of the transform using Albumentations is shown below:
+
+\inputminted[firstline=158]{python}{../src/oxford_pet.py}
