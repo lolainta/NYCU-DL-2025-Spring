@@ -1,21 +1,34 @@
-@misc{UNet,
-  title         = {U-Net: Convolutional Networks for Biomedical Image Segmentation},
-  author        = {Olaf Ronneberger and Philipp Fischer and Thomas Brox},
-  year          = {2015},
-  eprint        = {1505.04597},
-  archiveprefix = {arXiv},
-  primaryclass  = {cs.CV},
-  url           = {https://arxiv.org/abs/1505.04597}
+@article{UNet,
+  author     = {Olaf Ronneberger and
+                Philipp Fischer and
+                Thomas Brox},
+  title      = {U-Net: Convolutional Networks for Biomedical Image Segmentation},
+  journal    = {CoRR},
+  volume     = {abs/1505.04597},
+  year       = {2015},
+  url        = {http://arxiv.org/abs/1505.04597},
+  eprinttype = {arXiv},
+  eprint     = {1505.04597},
+  timestamp  = {Mon, 13 Aug 2018 16:46:52 +0200},
+  biburl     = {https://dblp.org/rec/journals/corr/RonnebergerFB15.bib},
+  bibsource  = {dblp computer science bibliography, https://dblp.org}
 }
 
-@misc{ResNet,
-  title         = {Deep Residual Learning for Image Recognition},
-  author        = {Kaiming He and Xiangyu Zhang and Shaoqing Ren and Jian Sun},
-  year          = {2015},
-  eprint        = {1512.03385},
-  archiveprefix = {arXiv},
-  primaryclass  = {cs.CV},
-  url           = {https://arxiv.org/abs/1512.03385}
+@article{ResNet,
+  author     = {Kaiming He and
+                Xiangyu Zhang and
+                Shaoqing Ren and
+                Jian Sun},
+  title      = {Deep Residual Learning for Image Recognition},
+  journal    = {CoRR},
+  volume     = {abs/1512.03385},
+  year       = {2015},
+  url        = {http://arxiv.org/abs/1512.03385},
+  eprinttype = {arXiv},
+  eprint     = {1512.03385},
+  timestamp  = {Wed, 25 Jan 2023 11:01:16 +0100},
+  biburl     = {https://dblp.org/rec/journals/corr/HeZRS15.bib},
+  bibsource  = {dblp computer science bibliography, https://dblp.org}
 }
 
 @article{ResUNet,
@@ -40,14 +53,13 @@
   doi       = {10.3389/fnana.2015.00142}
 }
 
-@misc{Adam,
-  title         = {Adam: A Method for Stochastic Optimization},
-  author        = {Diederik P. Kingma and Jimmy Ba},
-  year          = {2017},
-  eprint        = {1412.6980},
-  archiveprefix = {arXiv},
-  primaryclass  = {cs.LG},
-  url           = {https://arxiv.org/abs/1412.6980}
+@article{Adam,
+  title   = {Adam: A Method for Stochastic Optimization},
+  author  = {Diederik P. Kingma and Jimmy Ba},
+  journal = {CoRR},
+  year    = {2014},
+  volume  = {abs/1412.6980},
+  url     = {https://api.semanticscholar.org/CorpusID:6628106}
 }
 
 @article{Albumentations,
@@ -58,22 +70,39 @@
   year    = 2018
 }
 
-@misc{FCN,
-  title         = {Fully Convolutional Networks for Semantic Segmentation},
-  author        = {Jonathan Long and Evan Shelhamer and Trevor Darrell},
-  year          = {2015},
-  eprint        = {1411.4038},
-  archiveprefix = {arXiv},
-  primaryclass  = {cs.CV},
-  url           = {https://arxiv.org/abs/1411.4038}
+@article{FCN,
+  author     = {Jonathan Long and
+                Evan Shelhamer and
+                Trevor Darrell},
+  title      = {Fully Convolutional Networks for Semantic Segmentation},
+  journal    = {CoRR},
+  volume     = {abs/1411.4038},
+  year       = {2014},
+  url        = {http://arxiv.org/abs/1411.4038},
+  eprinttype = {arXiv},
+  eprint     = {1411.4038},
+  timestamp  = {Mon, 13 Aug 2018 16:48:17 +0200},
+  biburl     = {https://dblp.org/rec/journals/corr/LongSD14.bib},
+  bibsource  = {dblp computer science bibliography, https://dblp.org}
 }
 
-@misc{BN,
-  title         = {Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift},
-  author        = {Sergey Ioffe and Christian Szegedy},
-  year          = {2015},
-  eprint        = {1502.03167},
-  archiveprefix = {arXiv},
-  primaryclass  = {cs.LG},
-  url           = {https://arxiv.org/abs/1502.03167}
+
+@inproceedings{BN,
+  author    = {Ioffe, Sergey and Szegedy, Christian},
+  title     = {Batch normalization: accelerating deep network training by reducing internal covariate shift},
+  year      = {2015},
+  publisher = {JMLR.org},
+  abstract  = {Training Deep Neural Networks is complicated by the fact that the distribution of each layer's inputs changes during training, as the parameters of the previous layers change. This slows down the training by requiring lower learning rates and careful parameter initialization, and makes it notoriously hard to train models with saturating nonlinearities. We refer to this phenomenon as internal covariate shift, and address the problem by normalizing layer inputs. Our method draws its strength from making normalization a part of the model architecture and performing the normalization for each training mini-batch. Batch Normalization allows us to use much higher learning rates and be less careful about initialization, and in some cases eliminates the need for Dropout. Applied to a state-of-the-art image classification model, Batch Normalization achieves the same accuracy with 14 times fewer training steps, and beats the original model by a significant margin. Using an ensemble of batch-normalized networks, we improve upon the best published result on ImageNet classification: reaching 4.82\% top-5 test error, exceeding the accuracy of human raters.},
+  booktitle = {Proceedings of the 32nd International Conference on International Conference on Machine Learning - Volume 37},
+  pages     = {448–456},
+  numpages  = {9},
+  location  = {Lille, France},
+  series    = {ICML'15}
+}
+
+@inproceedings{DyT,
+  title     = {Transformers without Normalization},
+  author    = {Zhu, Jiachen and Chen, Xinlei and He, Kaiming and LeCun, Yann and Liu, Zhuang},
+  booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year      = {2025}
 }

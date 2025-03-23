@@ -1,6 +1,7 @@
-\newcommand{\comparisonfigures}[4]{
-    \comparisonfiguredice{#1}{#2}{#3}{#4}
-    \comparisonfigureloss{#1}{#2}{#3}{#4}
+
+\newcommand{\comparisonfigures}[2]{
+    \comparisonfiguredice{../log/u_#1}{../log/ru_#1}{#1}{#2}
+    \comparisonfigureloss{../log/u_#1}{../log/ru_#1}{#1}{#2}
 }
 
 \newcommand{\comparisonfiguredice}[4]{
@@ -8,12 +9,15 @@
         \centering
         \begin{tikzpicture}
             \begin{axis}[
-                    width=\linewidth,
+                    width=0.95\linewidth,
                     xlabel={Epoch},
                     ylabel={Dice Score},
                     % xmin=0,
                     % xmax=100,
-                    height=0.4\linewidth,
+                    % ymin=0.7,
+                    % ymax=1,
+                    ytick={0.7,0.8,0.85,0.9,1},
+                    height=0.5\linewidth,
                     grid=major,
                     title={Dice Score on Training/Validation Set (#4)},
                     legend style={at={(0.98,0.02)},anchor=south east},
@@ -50,16 +54,16 @@
 }
 
 \newcommand{\comparisonfigureloss}[4]{
-    \begin{figure}[p]
+    \begin{figure}[H]
         \centering
         \begin{tikzpicture}
             \begin{axis}[
-                    width=\linewidth,
+                    width=0.95\linewidth,
                     xlabel={Epoch},
                     ylabel={Loss},
                     % xmin=0,
                     % xmax=100,
-                    height=0.4\linewidth,
+                    height=0.3\linewidth,
                     grid=major,
                     title={Loss on Training/Validation Set (#4)},
                     % legend style={at={(1,1)},anchor=north east},

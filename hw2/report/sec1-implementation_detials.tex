@@ -11,7 +11,7 @@ This model consists of an encoder and a decoder. The encoder is a series of conv
 
 The \texttt{DoubleConv} class is a block that consists of two convolutional layers with batch normalization and ReLU activation functions.
 This component are both used in the encoder and decoder of both the UNet and ResUNet models.
-The implementation detail will be shown in Section~\ref{sec:double_conv}.
+The implementation detail will be shown in subsection~\ref{sec:double_conv}.
 
 There are some differences between the UNet I implemented and the original UNet~\cite{UNet}:
 \begin{itemize}
@@ -23,7 +23,7 @@ There are some differences between the UNet I implemented and the original UNet~
           However, I used the up-convolutional layers to upsample the feature maps.
     \item The original UNet didn't use batch normalization~\cite{BN}, while I used batch normalization in the convolutional layers.
           This is because in the double convolution block of ResNet~\cite{ResNet}, batch normalization is used.
-    \item The original UNet used output channels of 2, while I used output channels of 1. The reson will be explained in Section~\ref{sec:loss_function}.
+    \item The original UNet used output channels of 2, while I used output channels of 1. The reson will be explained in subsection~\ref{sec:loss_function}.
 \end{itemize}
 
 \subsubsection{ResUNet}
@@ -35,8 +35,8 @@ For the ResUNet~\cite{ResUNet} model, I implemented the model in the \texttt{Res
 This model is a ResNet~\cite{ResNet} model with a UNet~\cite{UNet} decoder.
 The ResNet model consists of a series of residual blocks, and the UNet decoder is a series of up-convolutional layers with skip connections from the ResNet model.
 
-The implementation detail for the \texttt{DoubleConv} class is shown in Section~\ref{sec:double_conv}.
-And the implementation detail for the \texttt{ResNetBlock} class will be shown in Section~\ref{sec:residual_block}.
+The implementation detail for the \texttt{DoubleConv} class is shown in subsection~\ref{sec:double_conv}.
+And the implementation detail for the \texttt{ResNetBlock} class will be shown in subsection~\ref{sec:residual_block}.
 
 \subsection{Model Components}
 
@@ -50,12 +50,15 @@ The batch normalization layer is used to normalize the output of the convolution
 The ReLU activation function is used to introduce non-linearity to the model.
 For memory efficiency, I set the \texttt{inplace} parameter of the ReLU activation function to \texttt{True} since the output of the ReLU activation function is only used once.
 
-As mentioned in Section~\ref{sec:unet}, the \texttt{DoubleConv} block contains batch normalization layers directly after the convolutional layers and before the activation functions.
+As mentioned in subsection~\ref{sec:unet}, the \texttt{DoubleConv} block contains batch normalization layers directly after the convolutional layers and before the activation functions.
 This is because in the double convolution block of ResNet~\cite{ResNet}, batch normalization is used.
 
 The implementation is shown below:
 
-\inputminted[firstline=4, highlightlines={16,21}]{python}{../src/models/common.py}
+\inputminted[firstline=23, highlightlines={35,36,40,41}]{python}{../src/models/common.py}
+
+The \texttt{DyT2d} class is a class that implements the DyT~\cite{DyT} layer accept a 4D tensor as input and output.
+This is discussed in subsection~\ref{sec:dyt}.
 
 \subsubsection{Residual Block}
 \label{sec:residual_block}
@@ -167,7 +170,7 @@ The other parts that are not highlighted are the steps that will not effect the 
 
 The implementation of the training loop is shown below:
 
-\inputminted[firstline=23, lastline=56, highlightlines={38,29,41,42,48-51}]{python}{../src/train.py}
+\inputminted[firstline=23, lastline=56, highlightlines={38,39,41,42,48-51}]{python}{../src/train.py}
 
 This train loop only responsible for an epoch of training.
 The training loop will be called in the \texttt{run} function in the \texttt{train.py} file.
