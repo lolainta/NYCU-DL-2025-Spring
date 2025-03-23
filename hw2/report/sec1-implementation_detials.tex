@@ -1,5 +1,7 @@
 \subsection{Model Architecture}
 
+All of the following implemention details are implemented using the PyTorch~\cite{PyTorch2} library.
+
 \subsubsection{UNet}
 \label{sec:unet}
 
@@ -38,6 +40,8 @@ The ResNet model consists of a series of residual blocks, and the UNet decoder i
 This model make a lot of use of both \texttt{DoubleConv} and \texttt{ResNetBlock} classes.
 The implementation detail for the \texttt{DoubleConv} class is shown in subsection~\ref{sec:double_conv}.
 And the implementation detail for the \texttt{ResNetBlock} class will be shown in subsection~\ref{sec:residual_block}.
+
+The \texttt{self.\_make\_layer} function is used to create a series of residual blocks, just as torchvision~\cite{torchvision2016} does.
 
 \subsection{Model Components}
 
