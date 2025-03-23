@@ -1,0 +1,7 @@
+\subsection{Double Convolution Without Batch Normalization}
+
+Since the UNet model I implemented use the double convolution block with batch normalization that Olaf Ronneberger et al.~\cite{UNet} didn't use, I decided to implement the double convolution block without batch normalization to see how it affects the performance of the model.
+
+The result of the model with double convolution block without batch normalization is shown in Figure~\ref{fig:train_val_dice_wo_bn} and Figure~\ref{fig:train_val_loss_wo_bn}.
+
+\comparisonfigures{../log/u_wo_bn}{../log/ru_wo_bn}{wo_bn}{Without Batch Normalization}
