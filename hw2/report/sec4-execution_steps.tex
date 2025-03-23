@@ -6,12 +6,12 @@ For training the UNet model, you can use the following command:
 python3 src/train.py -b 8 -e 200 -o u1 -lr 0.0001 -m unet
 \end{minted}
 
-The command above will train the model with a batch size of 32, 200 epochs, Adam optimizer (by default), and a learning rate of $1 \times 10^{-4}$.
+The command above will train the model with a batch size of 8, 200 epochs, Adam optimizer (by default), and a learning rate of $1 \times 10^{-4}$.
 
 For training the ResUNet model, you can use the following command:
 
 \begin{minted}{bash}
-python3 src/train.py -b 8 -e 200 -o ru1 -lr 0.0001 -o r1 -m resunet
+python3 src/train.py -b 8 -e 200 -o ru1 -lr 0.0001 -m resunet
 \end{minted}
 
 Note that the \texttt{-o} option is used to specify the output directory for saving the model and logs. You can change the output directory to any directory you want.

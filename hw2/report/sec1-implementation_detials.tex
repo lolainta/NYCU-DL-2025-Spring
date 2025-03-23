@@ -19,7 +19,8 @@ There are some differences between the UNet I implemented and the original UNet~
           This is because the original UNet is designed for EM segmentation challenge at ISBI 2012~\cite{ISBI2012EM}, which has larger images (512x512) compared to the Oxford Pets dataset we are using in this homework.
     \item The original UNet didn't use padding in the convolutional layers, which will reduce the size of the image.
           However, I used padding in the convolutional layers to keep the size of the image the same.
-    \item The original UNet used bilinear interpolation in the up-convolutional layers, while I used transposed convolutional layers.
+    \item The original UNet uses "fully convolutional network"~\cite{FCN} by replacing the pooling layers with upsampling layers to increase the resolution of the feature maps.
+          However, I used the up-convolutional layers to upsample the feature maps.
     \item The original UNet didn't use batch normalization, while I used batch normalization in the convolutional layers.
           This is because in the double convolution block of ResNet~\cite{ResNet}, batch normalization is used.
     \item The original UNet used output channels of 2, while I used output channels of 1. The reson will be explained in Section~\ref{sec:loss_function}.
@@ -144,6 +145,9 @@ I used the Adam optimizer~\cite{Adam} for both the UNet and ResUNet models.
 The Adam optimizer is an adaptive learning rate optimization algorithm that is designed to combine the advantages of two other optimization algorithms: AdaGrad and RMSProp.
 
 \subsection{Training}
+
+Both of my models are trained using the same training loop that trained end-to-end.
+The training loop is implemented in the \texttt{train.py} file.
 
 The training loop consists of the following steps:
 \begin{itemize}

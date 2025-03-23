@@ -1,7 +1,10 @@
-
 For data preprocessing, I first resized the images to $256 \times 256$ pixels.
 However, the model can perform very good while training on the training set but perform poorly on the validation set, which indicates that the model is overfitting and the model is not generalizing well.
-Therefore, I started to consider using data augmentation to improve the generalization of the model.
+
+As Olaf Ronneberger et al.~\cite{UNet} mentioned in their paper, they relies on the strong use of data augmentation to use the available annotated samples more effectively.
+
+Since our task has little training data available (about 3,000 to 4,000 images), I use excessive data augmentation same as the authors of the UNet paper did.
+This allows the model to learn invariant features and improve the generalization of the model.
 
 \subsection{Data Augmentation}
 
