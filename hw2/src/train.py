@@ -10,7 +10,7 @@ from tqdm import tqdm, trange
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from oxford_pet import load_dataset
+from oxford_pet import load_dataset, OxfordPetDataset
 from models.unet import UNet
 from models.resnet34_unet import ResUNet
 from evaluate import evaluate
@@ -224,5 +224,5 @@ if __name__ == "__main__":
     with open(config_fname, "w") as f:
         f.write(str(args))
 
-    # OxfordPetDataset.download(args.data_path)
+    OxfordPetDataset.download(args.data_path)
     run(args)
