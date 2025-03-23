@@ -1,9 +1,9 @@
 import numpy as np
 import os
+import os.path as osp
 import torch
 from PIL import Image
 from icecream import ic
-from torch import tensor
 from torch import nn
 
 
@@ -18,6 +18,21 @@ def dice_score(pred, target):
     target = target.contiguous().view(-1)
     intersection = (pred * target).sum()
     return (2.0 * intersection + smooth) / (pred.sum() + target.sum() + smooth)
+
+
+def save_figure(
+    mask: torch.Tensor,
+    pred: torch.Tensor,
+    save_dir: os.PathLike,
+    img_name: str,
+):
+    dir_path = osp.join(save_dir, "results")
+    os.makedirs(dir_path, exist_ok=True)
+    np_mask = mask.cpu().numpy()
+    np_pred = pred.cpu().numpy()
+
+    result = np.hstack([np_mask, np_pred])
+    Image.fromarray((result * 255).astype(np.uint8)).save(osp.join(dir_path, img_name))
 
 
 class BCELoss:

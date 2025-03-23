@@ -41,6 +41,7 @@ class OxfordPetDataset(torch.utils.data.Dataset):
         transformed["image"] = (
             transformed["image"].transpose(2, 0, 1).astype(np.float32)
         )
+        transformed["image_name"] = filename
         return transformed
 
     @staticmethod

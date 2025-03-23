@@ -103,7 +103,7 @@ The binary cross-entropy loss function is suitable for this task.
 
 The implementation is shown below:
 
-\inputminted[firstline=23, lastline=28, highlightlines=25]{python}{../src/utils.py}
+\inputminted[firstline=38, lastline=43, highlightlines=40]{python}{../src/utils.py}
 
 \subsubsection{Dice Loss}
 
@@ -123,7 +123,7 @@ In such way, when we consider the Dice loss as the loss function, the model will
 
 The implementation is shown below:
 
-\inputminted[firstline=31, lastline=41, highlightlines={39-41}]{python}{../src/utils.py}
+\inputminted[firstline=46, lastline=56, highlightlines={54-56}]{python}{../src/utils.py}
 
 \subsubsection{BCEDiceLoss}
 
@@ -138,7 +138,7 @@ However, I'm lazy to tune the hyperparameters, so I decided to just simply sum t
 
 The implementation is shown below:
 
-\inputminted[firstline=44, highlightlines={50}]{python}{../src/utils.py}
+\inputminted[firstline=59, highlightlines={65}]{python}{../src/utils.py}
 
 \subsection{Optimizer}
 
@@ -208,11 +208,17 @@ The implementation of the validation loop is shown below, it is similar to the t
 
 And the testing loop is a way more similar to the validation loop.
 In fact, they called the same function \texttt{evaluate} in the \texttt{evaluate.py} file.
-The only difference is that the testing loop will deal with the arguments diffently, and the validation loop will be done on the validation dataset each epoch, while the testing loop will be done on the testing dataset after the training process.
+The only difference is that the testing loop will call the \texttt{evaluate} function with the option \texttt{save\_results=True} to save the results to the output directory.
+The results will be saved to another directory called \texttt{results} under the output directory.
+
 
 The implementation of the testing loop is shown below:
 
-\inputminted[firstline=17, lastline=36]{python}{../src/inference.py}
+\inputminted[firstline=17, lastline=43, highlightlines=41]{python}{../src/inference.py}
+
+And the implemented of \texttt{save\_figure} function is shown below:
+
+\inputminted[firstline=23, lastline=35]{python}{../src/utils.py}
 
 \subsection{Useless Features}
 

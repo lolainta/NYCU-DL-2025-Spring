@@ -32,7 +32,14 @@ def test(args):
     criterion = BCEDiceLoss()
 
     print("Evaluating the model on the test set")
-    avg_loss, avg_dice = evaluate(model, test_loader, criterion, args, position=0)
+    avg_loss, avg_dice = evaluate(
+        model,
+        test_loader,
+        criterion,
+        args,
+        position=0,
+        save_results=True,
+    )
     ic(avg_loss, avg_dice)
 
 
