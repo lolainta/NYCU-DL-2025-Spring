@@ -20,7 +20,7 @@ The implementation of DyT is quite simple, it is shown below:
 \inputminted[firstline=5, lastline=20]{python}{../src/models/common.py}
 
 The result of the model with DyT is shown in Figure~\ref{fig:train_val_dice_dyt2d} and Figure~\ref{fig:train_val_loss_dyt2d}.
-We can see that the model with DyT has a similar performance to the model without batch normalization, which is lower than the model with batch normalization.
+We can see that the model with DyT has a similar performance to the model without batch normalization, which is slightly lower than the model with batch normalization, but still have a dice score higher than 0.9 on the validation set for the last few epochs.
 And the figure also shows that it is even not as stable as the model without batch normalization.
 
 This might be because the DyT is not suitable for the double convolution block, since it is designed for the Transformer model.
