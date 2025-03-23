@@ -35,6 +35,7 @@ For the ResUNet~\cite{ResUNet} model, I implemented the model in the \texttt{Res
 This model is a ResNet~\cite{ResNet} model with a UNet~\cite{UNet} decoder.
 The ResNet model consists of a series of residual blocks, and the UNet decoder is a series of up-convolutional layers with skip connections from the ResNet model.
 
+This model make a lot of use of both \texttt{DoubleConv} and \texttt{ResNetBlock} classes.
 The implementation detail for the \texttt{DoubleConv} class is shown in subsection~\ref{sec:double_conv}.
 And the implementation detail for the \texttt{ResNetBlock} class will be shown in subsection~\ref{sec:residual_block}.
 
@@ -71,7 +72,7 @@ There are two conditions for the skip connection:
 \begin{itemize}
     \item If the input and output of the residual block have the same size, the skip connection will be the identity mapping.
     \item If the input and output of the residual block have different sizes, the skip connection will be a convolutional layer with a kernel size of 1x1 and a stride of 2.
-          The reason for why the stride is fixed to 2 is that the size of the image will always be reduced by half after the convolutional layer in the ResNet model.
+          The reason for why the stride is fixed to 2 is that the size of the image will always be reduced by half after the convolutional layer in the ResNet~\cite{ResNet} model.
 \end{itemize}
 
 The implementation is shown below:
@@ -124,7 +125,7 @@ The implementation is shown below:
 
 \inputminted[firstline=31, lastline=41, highlightlines={39-41}]{python}{../src/utils.py}
 
-\subsection{BCEDiceLoss}
+\subsubsection{BCEDiceLoss}
 
 As a result, I defined the BCEDiceLoss as the sum of the binary cross-entropy loss and the Dice loss:
 
@@ -170,7 +171,7 @@ The other parts that are not highlighted are the steps that will not effect the 
 
 The implementation of the training loop is shown below:
 
-\inputminted[firstline=23, lastline=56, highlightlines={38,39,41,42,48-51}]{python}{../src/train.py}
+\inputminted[firstline=23, lastline=56, highlightlines={29,38,39,41,42,48-51}]{python}{../src/train.py}
 
 This train loop only responsible for an epoch of training.
 The training loop will be called in the \texttt{run} function in the \texttt{train.py} file.
@@ -180,6 +181,7 @@ The responsibility of the \texttt{main} function is to parse the arguments, set 
 And the responsibility of the \texttt{run} function is to set the model, optimizer, loss function, and data loader.
 It will not only call the training loop for each epoch, and call the evaluation function with the validation dataset loader after each epoch, and save the model weights if the validation Dice coefficient is improved.
 Not to mention, it will also log the training loss, validation loss, and validation Dice coefficient.
+You can see the implementation of the \texttt{run} function in the \texttt{train.py} file for more details.
 
 
 \subsection{Validation}
@@ -210,7 +212,7 @@ The only difference is that the testing loop will deal with the arguments diffen
 
 The implementation of the testing loop is shown below:
 
-\inputminted[firstline=18,lastline=35]{python}{../src/inference.py}
+\inputminted[firstline=17, lastline=36]{python}{../src/inference.py}
 
 \subsection{Useless Features}
 
@@ -224,7 +226,7 @@ It has the following features:
     \item There are two progress bars that show the progress of the epoch and the progress of the batch.
           It will be shown in the last two lines in the terminal and will not conflict each other even with the training log.
           That is to say, the training log will be output in the middle of the terminal (the third line counting from the buttom).
-    \item The number of iterations of the progress bar of the current epoch will be shown as the number of images in the training dataset.
+    \item The number of iterations of the progress bar of the current epoch will be shown as the number of images trained in the training dataset.
           This is because the number of iterations of the progress bar of the current epoch is the number of batches in the training dataset.
           And the number of images in the training dataset is the number of batches in the training dataset multiplied by the batch size.
           This is more intuitive for me to know how many images have been trained.

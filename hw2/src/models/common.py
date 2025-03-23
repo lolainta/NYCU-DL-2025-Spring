@@ -32,14 +32,14 @@ class DoubleConv(nn.Module):
                 padding=1,
                 bias=False,
             ),
-            # nn.BatchNorm2d(out_channels),
-            DyT2d(out_channels),
+            nn.BatchNorm2d(out_channels),
+            # DyT2d(out_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(
                 out_channels, out_channels, kernel_size=3, padding="same", bias=False
             ),
-            # nn.BatchNorm2d(out_channels),
-            DyT2d(out_channels),
+            nn.BatchNorm2d(out_channels),
+            # DyT2d(out_channels),
             nn.ReLU(inplace=True),
         )
 

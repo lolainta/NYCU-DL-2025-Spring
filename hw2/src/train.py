@@ -116,8 +116,6 @@ def run(args):
             f"Epoch: {epoch+1}/{args.epochs}, Train Loss: {np.mean(train_loss):.4f}, Train Dice: {np.mean(train_dice):.4f}, Val Loss: {val_loss:.4f}, Val Dice: {val_dice:.4f}"
         )
 
-        torch.save(model.state_dict(), osp.join(args.out_dir, f"model_{epoch}.pth"))
-
         writer.add_scalar("Loss/train", train_loss, epoch + 1)
         writer.add_scalar("Dice/train", train_dice, epoch + 1)
         writer.add_scalar("Loss/val", val_loss, epoch + 1)
