@@ -1,0 +1,111 @@
+import torch
+from torch import nn
+
+from models.common import DoubleConv
+
+
+class ResNetBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=1, downsample=False):
+        super().__init__()
+        self.block = DoubleConv(in_channels, out_channels, stride)
+        if downsample:
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2),
+                nn.BatchNorm2d(out_channels),
+            )
+        else:
+            self.shortcut = nn.Identity()
+
+    def forward(self, x):
+        return self.block(x) + self.shortcut(x)
+
+
+class ResUNet(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.tail = nn.Sequential(
+            nn.Conv2d(in_channels, 64, 7, stride=2, padding=3, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        )  # 0 -> 2
+
+        self.block_nums = [3, 4, 6, 2]
+        self.encoder = nn.ModuleList(
+            [
+                self._make_layer(
+                    64,
+                    64,
+                    self.block_nums[0],
+                    stride=1,
+                    downsample=False,
+                ),  # 2 -> 2
+                self._make_layer(64, 128, self.block_nums[1]),  # 2 -> 3
+                self._make_layer(128, 256, self.block_nums[2]),  # 3 -> 4
+                self._make_layer(256, 512, self.block_nums[3]),  # 4 -> 5
+            ]
+        )
+        self.center = nn.Sequential(
+            nn.Conv2d(512, 256, 3, padding="same"),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+        )
+        self.decoder = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.ConvTranspose2d(256 + 512, 32, kernel_size=2, stride=2),
+                    DoubleConv(32, 32),
+                ),
+                nn.Sequential(
+                    nn.ConvTranspose2d(32 + 256, 32, kernel_size=2, stride=2),
+                    DoubleConv(32, 32),
+                ),
+                nn.Sequential(
+                    nn.ConvTranspose2d(32 + 128, 32, kernel_size=2, stride=2),
+                    DoubleConv(32, 32),
+                ),
+                nn.Sequential(
+                    nn.ConvTranspose2d(32 + 64, 32, kernel_size=2, stride=2),
+                    DoubleConv(32, 32),
+                ),
+            ],
+        )
+
+        self.head = nn.Sequential(
+            nn.ConvTranspose2d(32, 32, kernel_size=2, stride=2),
+            nn.Conv2d(32, out_channels, kernel_size=1),
+            nn.Sigmoid(),
+        )
+
+    def _make_layer(
+        self,
+        in_channels,
+        out_channels,
+        num_blocks,
+        stride=2,
+        downsample=True,
+    ):
+        layers = [ResNetBlock(in_channels, out_channels, stride, downsample)]
+        for _ in range(1, num_blocks):
+            layers.append(ResNetBlock(out_channels, out_channels))
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        x1 = self.tail(x)  # 64
+        x2 = self.encoder[0](x1)  # 64
+        x3 = self.encoder[1](x2)  # 128
+        x4 = self.encoder[2](x3)  # 256
+        x5 = self.encoder[3](x4)  # 512
+
+        x6 = self.center(x5)  # 256
+
+        x7 = torch.cat((x6, x5), dim=1)  # 256 + 512
+        x8 = self.decoder[0](x7)
+        x9 = torch.cat((x8, x4), dim=1)  # 32 + 256
+        x10 = self.decoder[1](x9)
+        x11 = torch.cat((x10, x3), dim=1)  # 32 + 128
+        x12 = self.decoder[2](x11)
+        x13 = torch.cat((x12, x2), dim=1)  # 32 + 64
+        x14 = self.decoder[3](x13)
+
+        return self.head(x14)

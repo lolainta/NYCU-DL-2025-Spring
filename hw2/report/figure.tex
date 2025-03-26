@@ -1,0 +1,100 @@
+
+\newcommand{\comparisonfigures}[2]{
+    \comparisonfiguredice{../log/u_#1}{../log/ru_#1}{#1}{#2}
+    \comparisonfigureloss{../log/u_#1}{../log/ru_#1}{#1}{#2}
+}
+
+\newcommand{\comparisonfiguredice}[4]{
+    \begin{figure}[H]
+        \centering
+        \begin{tikzpicture}
+            \begin{axis}[
+                    width=0.95\linewidth,
+                    xlabel={Epoch},
+                    ylabel={Dice Score},
+                    % xmin=0,
+                    % xmax=100,
+                    % ymin=0.7,
+                    % ymax=1,
+                    ytick={0.7,0.8,0.85,0.9,1},
+                    height=0.5\linewidth,
+                    grid=major,
+                    title={Dice Score on Training/Validation Set (#4)},
+                    legend style={at={(0.98,0.02)},anchor=south east},
+                ]
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=val_dice,
+                    ]{#1/epochs.csv};
+                \addlegendentry{Unet (Validation)}
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=val_dice,
+                    ]{#2/epochs.csv};
+                \addlegendentry{ResUNet (Validation)}
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=train_dice,
+                    ]{#1/epochs.csv};
+                \addlegendentry{Unet (Training)}
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=train_dice,
+                    ]{#2/epochs.csv};
+                \addlegendentry{ResUNet (Training)}
+            \end{axis}
+        \end{tikzpicture}
+        \caption{Dice score on training and validation sets for both models (#4)}
+        \label{fig:train_val_dice_#3}
+    \end{figure}
+}
+
+\newcommand{\comparisonfigureloss}[4]{
+    \begin{figure}[H]
+        \centering
+        \begin{tikzpicture}
+            \begin{axis}[
+                    width=0.95\linewidth,
+                    xlabel={Epoch},
+                    ylabel={Loss},
+                    % xmin=0,
+                    % xmax=100,
+                    height=0.3\linewidth,
+                    grid=major,
+                    title={Loss on Training/Validation Set (#4)},
+                    % legend style={at={(1,1)},anchor=north east},
+                ]
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=val_loss,
+                    ]{#1/epochs.csv};
+                \addlegendentry{Unet (Validation)}
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=val_loss,
+                    ]{#2/epochs.csv};
+                \addlegendentry{ResUNet (Validation)}
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=train_loss,
+                    ]{#1/epochs.csv};
+                \addlegendentry{Unet (Training)}
+                \addplot table [
+                        col sep=comma,
+                        x=epoch,
+                        y=train_loss,
+                    ]{#2/epochs.csv};
+                \addlegendentry{ResUNet (Training)}
+            \end{axis}
+        \end{tikzpicture}
+        \caption{Loss on training and validation sets for both models (#4)}
+        \label{fig:train_val_loss_#3}
+    \end{figure}
+}

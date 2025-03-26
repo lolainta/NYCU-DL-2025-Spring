@@ -1,0 +1,40 @@
+For data preprocessing, I first resized the images to $576 \times 576$ pixels as Olaf Ronneberger et al.~\cite{UNet} did.
+However, the model perform poorly no matter how I tuned the hyperparameters.
+I then resized the images to $256 \times 256$ pixels and the model perform much better.
+The reason might be that our dataset need to upsample the images to $576 \times 576$ pixels, which might cause the model to learn on degraded images.
+And I haven't tried any data augmentation at that time, so the model might not learn invariant features and not generalize well.
+
+However, after I resized the images to $256 \times 256$ pixels the model can perform very good while training on the training set but perform poorly on the validation set (cannot exceed 0.9 dice score on the validation set), which indicates that the model is overfitting and the model is not generalizing well.
+
+As Olaf Ronneberger et al.~\cite{UNet} mentioned in their paper, they relies on the strong use of data augmentation to use the available annotated samples more effectively.
+
+Since our task has little training data available (around 3,300 images), I use excessive data augmentation same as the authors of the UNet paper did.
+This allows the model to learn invariant features and improve the generalization of the model.
+
+\subsection{Data Augmentation}
+
+After surveying many libraries, I found that the Albumentations library~\cite{Albumentations} is a very powerful library for image augmentation.
+It is also suprised that the default code TA provided in \texttt{oxford\_pet.py} is very similar to the code in the official document of Albumentations.
+Therefore, I decided to use Albumentations to augment the data.
+
+The augmentation methods I used are as follows:
+
+\begin{itemize}
+    \item Resize: Resize the image to $256 \times 256$ pixels.
+    \item HorizontalFlip: Flip the image horizontally.
+    \item VerticalFlip: Flip the image vertically.
+    \item Rotate: Rotate the image by an angle.
+    \item RandomBrightnessContrast: Randomly change brightness and contrast of the image.
+    \item HueSaturationValue: Randomly change hue, saturation and value of the image.
+    \item RGBShift: Randomly shift values for each channel of the image.
+    \item RandomGamma: Randomly change gamma of the image.
+\end{itemize}
+
+The augmentation methods are randomly applied to the images during training.
+For testing and validation, only the resize operation is applied to the images.
+This can make validation and testing results more reliable.
+
+The results shows that the model can perform very well on the validation set, which has dice score higher than 0.9 on the validation set.
+The implementation of the transform using Albumentations is shown below:
+
+\inputminted[firstline=121]{python}{../src/oxford_pet.py}

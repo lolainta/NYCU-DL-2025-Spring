@@ -1,0 +1,29 @@
+\subsection{Double Convolution Without Batch Normalization}
+
+Since the UNet model I implemented use the double convolution block with batch normalization that Olaf Ronneberger et al.~\cite{UNet} didn't use, I decided to implement the double convolution block without batch normalization to see how it affects the performance of the model.
+
+The result of the model with double convolution block without batch normalization is shown in Figure~\ref{fig:train_val_dice_wo_bn} and Figure~\ref{fig:train_val_loss_wo_bn}.
+
+\comparisonfigures{wo_bn}{Without Batch Normalization}
+
+We can see that the model with double convolution block without batch normalization has not only a slightly lower performance than the model with batch normalization, but it is also not as stable as the model with batch normalization.
+
+\subsection{DyT: Replace Batch Normalization with DyT}
+\label{sec:dyt}
+
+However, the double convolution block without batch normalization is not the only way to replace batch normalization.
+Jiachen Zhu et al.~\cite{DyT} proposed that Transformers without normalization can achieve similar or even better performance with a remakably simple technique called DyT  (Dynamic Tanh).
+DyT is a simple technique that replaces the normalization layer with parameterized tanh, which is an element-wise operation that scales the input tensor by a learnable parameter.
+
+The implementation of DyT is quite simple, it is shown below:
+
+\inputminted[firstline=5, lastline=20]{python}{../src/models/common.py}
+
+The result of the model with DyT is shown in Figure~\ref{fig:train_val_dice_dyt2d} and Figure~\ref{fig:train_val_loss_dyt2d}.
+We can see that the model with DyT has a similar performance to the model without batch normalization, which is slightly lower than the model with batch normalization, but still have a dice score higher than 0.9 on the validation set for the last few epochs.
+And the figure also shows that it is even not as stable as the model without batch normalization.
+
+This might be because the DyT is not suitable for the double convolution block, since it is designed for the Transformer model.
+It is worth to investigate more on why DyT doesn't work well on the double convolution block and how to replace the batch normalization layer with DyT in the double convolution block.
+
+\comparisonfigures{dyt2d}{Replace Batch Normalization with DyT2d}

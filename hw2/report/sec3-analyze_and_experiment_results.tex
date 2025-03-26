@@ -1,0 +1,23 @@
+\subsection{Basic Experiment}
+
+In the basic experiment, I used experimented two models on the Oxford-IIIT Pet dataset.
+
+For both models, I used the following hyperparameters:
+\begin{itemize}
+    \item Batch size: 8
+    \item Epochs: 100
+    \item Optimizer: Adam
+    \item Learning rate: $1 \times 10^{-4}$
+    \item Scheduler: None
+\end{itemize}
+
+
+The training and validation dice score for both models are shown in Figure~\ref{fig:train_val_dice_basic}.
+And the loss curve for both models are shown in Figure~\ref{fig:train_val_loss_basic}.
+We can see that both models have similar performance on the validation set, which has dice score higher than 0.9 on the validation set.
+The training dice score is higher than the validation dice score, which is expected.
+The training loss is lower than the validation loss, which is also expected.
+Note that the loss is described at subsection~\ref{sec:loss_function}.
+Please refer there for more details.
+
+\comparisonfigures{basic}{Basic Experiment}

@@ -1,0 +1,27 @@
+\subsection{Training}
+
+For training the UNet model, you can use the following command:
+
+\begin{minted}{bash}
+python3 src/train.py -b 8 -e 200 -o u1 -lr 0.0001 -m unet --data_path dataset/oxford-iiit-pet
+\end{minted}
+
+The command above will train the model with a batch size of 8, 200 epochs, Adam optimizer (by default), and a learning rate of $1 \times 10^{-4}$.
+
+For training the ResUNet model, you can use the following command:
+
+\begin{minted}{bash}
+python3 src/train.py -b 8 -e 200 -o ru1 -lr 0.0001 -m resunet --data_path dataset/oxford-iiit-pet
+\end{minted}
+
+Note that the \texttt{-o} option is used to specify the output directory for saving the model and logs. You can change the output directory to any directory you want.
+But mentioned that the output directory should will be prefixed with \texttt{log/}.
+
+\subsection{Inference}
+
+For inference, you can use the following command:
+
+\begin{minted}{bash}
+python3 src/inference.py -m unet -o u1 -w best_model.pth --data_path dataset/oxford-iiit-pet
+python3 src/inference.py -m resunet -o ru1 -w best_model.pth --data_path dataset/oxford-iiit-pet
+\end{minted}
