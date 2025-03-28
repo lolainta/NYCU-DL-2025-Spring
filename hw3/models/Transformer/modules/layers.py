@@ -3,7 +3,7 @@ import torch
 import math
 
 
-# TODO1
+# TODO-1:
 class MultiHeadAttention(nn.Module):
     def __init__(self, dim=768, num_heads=16, attn_drop=0.1):
         super(MultiHeadAttention, self).__init__()

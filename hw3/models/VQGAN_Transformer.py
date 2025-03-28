@@ -8,7 +8,7 @@ from .VQGAN import VQGAN
 from .Transformer import BidirectionalTransformer
 
 
-# TODO2 step1: design the MaskGIT model
+# TODO-2: step1: design the MaskGIT model
 class MaskGit(nn.Module):
     def __init__(self, configs):
         super().__init__()
@@ -31,13 +31,13 @@ class MaskGit(nn.Module):
         model = model.eval()
         return model
 
-    ##TODO2 step1-1: input x fed to vqgan encoder to get the latent and zq
+    # TODO-2: step1-1: input x fed to vqgan encoder to get the latent and zq
     @torch.no_grad()
     def encode_to_z(self, x):
         raise Exception("TODO2 step1-1!")
         return None
 
-    ##TODO2 step1-2:
+    # TODO-2: step1-2:
     def gamma_func(self, mode="cosine"):
         """Generates a mask rate by scheduling mask functions R.
 
@@ -62,7 +62,7 @@ class MaskGit(nn.Module):
         else:
             raise NotImplementedError
 
-    ##TODO2 step1-3:
+    # TODO-2: step1-3:
     def forward(self, x):
 
         z_indices = None  # ground truth
@@ -70,7 +70,7 @@ class MaskGit(nn.Module):
         raise Exception("TODO2 step1-3!")
         return logits, z_indices
 
-    ##TODO3 step1-1: define one iteration decoding
+    # TODO-3: step1-1: define one iteration decoding
     @torch.no_grad()
     def inpainting(self):
         raise Exception("TODO3 step1-1!")

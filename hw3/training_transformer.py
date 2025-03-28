@@ -12,7 +12,7 @@ import yaml
 from torch.utils.data import DataLoader
 
 
-# TODO2 step1-4: design the transformer training strategy
+# TODO-2: step1-4: design the transformer training strategy
 class TrainTransformer:
     def __init__(self, args, MaskGit_CONFIGS):
         self.model = VQGANTransformer(MaskGit_CONFIGS["model_param"]).to(
@@ -37,9 +37,9 @@ class TrainTransformer:
         return optimizer, scheduler
 
 
-if __name__ == "__main__":
+def get_args():
     parser = argparse.ArgumentParser(description="MaskGIT")
-    # TODO2:check your dataset path is correct
+    # TODO-2: check your dataset path is correct
     parser.add_argument(
         "--train_d_path",
         type=str,
@@ -59,11 +59,22 @@ if __name__ == "__main__":
         help="Path to checkpoint.",
     )
     parser.add_argument(
-        "--device", type=str, default="cuda:0", help="Which device the training is on."
+        "--device",
+        type=str,
+        default="cuda:0",
+        help="Which device the training is on.",
     )
-    parser.add_argument("--num_workers", type=int, default=4, help="Number of worker")
     parser.add_argument(
-        "--batch-size", type=int, default=10, help="Batch size for training."
+        "--num_workers",
+        type=int,
+        default=4,
+        help="Number of worker",
+    )
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=10,
+        help="Batch size for training.",
     )
     parser.add_argument(
         "--partial",
@@ -72,12 +83,17 @@ if __name__ == "__main__":
         help="Number of epochs to train (default: 50)",
     )
     parser.add_argument(
-        "--accum-grad", type=int, default=10, help="Number for gradient accumulation."
+        "--accum-grad",
+        type=int,
+        default=10,
+        help="Number for gradient accumulation.",
     )
-
     # you can modify the hyperparameters
     parser.add_argument(
-        "--epochs", type=int, default=0, help="Number of epochs to train."
+        "--epochs",
+        type=int,
+        default=0,
+        help="Number of epochs to train.",
     )
     parser.add_argument(
         "--save-per-epoch",
@@ -86,21 +102,35 @@ if __name__ == "__main__":
         help="Save CKPT per ** epochs(defcault: 1)",
     )
     parser.add_argument(
-        "--start-from-epoch", type=int, default=0, help="Number of epochs to train."
+        "--start-from-epoch",
+        type=int,
+        default=0,
+        help="Number of epochs to train.",
     )
     parser.add_argument(
-        "--ckpt-interval", type=int, default=0, help="Number of epochs to train."
+        "--ckpt-interval",
+        type=int,
+        default=0,
+        help="Number of epochs to train.",
     )
-    parser.add_argument("--learning-rate", type=float, default=0, help="Learning rate.")
-
+    parser.add_argument(
+        "--learning-rate",
+        type=float,
+        default=0,
+        help="Learning rate.",
+    )
     parser.add_argument(
         "--MaskGitConfig",
         type=str,
         default="config/MaskGit.yml",
         help="Configurations for TransformerVQGAN",
     )
-
     args = parser.parse_args()
+    return args
+
+
+if __name__ == "__main__":
+    args = get_args()
 
     MaskGit_CONFIGS = yaml.safe_load(open(args.MaskGitConfig, "r"))
     train_transformer = TrainTransformer(args, MaskGit_CONFIGS)
@@ -125,6 +155,6 @@ if __name__ == "__main__":
         shuffle=False,
     )
 
-    # TODO2 step1-5:
+    # TODO-2: step1-5:
     for epoch in range(args.start_from_epoch + 1, args.epochs + 1):
         pass
