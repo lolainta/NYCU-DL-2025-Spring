@@ -1,4 +1,4 @@
-import torch 
+import torch
 import numpy as np
 
 from scipy._lib._util import _asarray_validated
@@ -12,13 +12,17 @@ from scipy.linalg._decomp_schur import schur, rsf2csf
 class SqrtmError(np.linalg.LinAlgError):
     pass
 
+
 from scipy.linalg._matfuncs_sqrtm_triu import within_block_loop
+
 
 def np_to_gpu_tensor(device, np_array):
     return torch.from_numpy(np_array).to(device)
 
+
 def torch_matmul_to_array(tensor1, tensor2):
     return torch.matmul(tensor1, tensor2).cpu().numpy()
+
 
 def sqrtm(A, array_to_tensor, disp=True, blocksize=64):
 
@@ -34,7 +38,7 @@ def sqrtm(A, array_to_tensor, disp=True, blocksize=64):
         if not np.array_equal(T, np.triu(T)):
             T, Z = rsf2csf(T, Z)
     else:
-        T, Z = schur(A, output='complex')
+        T, Z = schur(A, output="complex")
     failflag = False
     try:
         R = array_to_tensor(_sqrtm_triu(T, array_to_tensor, blocksize=blocksize))
@@ -47,7 +51,7 @@ def sqrtm(A, array_to_tensor, disp=True, blocksize=64):
         else:
             # complex byte size range: c8 ~ c32.
             # c32(complex256) might not be supported in some environments.
-            if hasattr(np, 'complex256'):
+            if hasattr(np, "complex256"):
                 X = X.astype(f"c{np.clip(byte_size*2, 8, 32)}", copy=False)
             else:
                 X = X.astype(f"c{np.clip(byte_size*2, 8, 16)}", copy=False)
@@ -64,12 +68,13 @@ def sqrtm(A, array_to_tensor, disp=True, blocksize=64):
         try:
             X_ = array_to_tensor(X)
             X_dot_X = torch_matmul_to_array(X_, X_)
-            arg2 = norm(X_dot_X - A, 'fro')**2 / norm(A, 'fro')
+            arg2 = norm(X_dot_X - A, "fro") ** 2 / norm(A, "fro")
         except ValueError:
             # NaNs in matrix
             arg2 = np.inf
 
         return X, arg2
+
 
 def _sqrtm_triu(T, array_to_tensor, blocksize=64):
 
@@ -96,7 +101,7 @@ def _sqrtm_triu(T, array_to_tensor, blocksize=64):
     blarge = bsmall + 1
     nsmall = nblocks - nlarge
     if nsmall * bsmall + nlarge * blarge != n:
-        raise Exception('internal inconsistency')
+        raise Exception("internal inconsistency")
 
     # Define the index range covered by each block.
     start_stop_pairs = []
@@ -115,7 +120,7 @@ def _sqrtm_triu(T, array_to_tensor, blocksize=64):
     # Between-block interactions (Cython would give no significant speedup)
     for j in range(nblocks):
         jstart, jstop = start_stop_pairs[j]
-        for i in range(j-1, -1, -1):
+        for i in range(j - 1, -1, -1):
             istart, istop = start_stop_pairs[i]
             S = T[istart:istop, jstart:jstop]
             if j - i > 1:
@@ -135,5 +140,4 @@ def _sqrtm_triu(T, array_to_tensor, blocksize=64):
             R[istart:istop, jstart:jstop] = x * scale
 
     # Return the matrix square root.
-    return R        
-
+    return R
