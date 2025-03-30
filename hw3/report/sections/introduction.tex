@@ -1,0 +1,14 @@
+\section{Introduction}
+\label{sec:intro}
+
+In this lab, we explore the use of \textbf{MaskGIT}~\cite{MaskGIT}, a masked generative image transformer, for the \textbf{image inpainting} task.
+Image inpainting aims to restore missing or corrupted regions in an image in a visually plausible manner.
+To achieve this, we implement the second stage of the MaskGIT pipeline, which involves constructing a \textbf{Multi-Head Self-Attention} module~\cite{Attention}, training a \textbf{Bidirectional Transformer} using \textbf{Masked Visual Token Modeling (MVTM)}, and performing \textbf{iterative decoding} to complete masked images.
+
+The core idea behind MaskGIT is to leverage a bidirectional Transformer architecture to address the inefficiencies of traditional autoregressive models, enhancing both generation quality and computational efficiency.
+Initially, images are encoded using a pretrained VQGAN encoder~\cite{VQGAN} to generate discrete latent tokens.
+During training, random subsets of these tokens are masked, and the model learns to predict these masked tokens.
+During inference, iterative decoding is used, employing various mask scheduling strategies to progressively refine the reconstruction based on confidence scores.
+
+This report details our implementation steps, key design choices, analyses of mask scheduling strategies, and evaluation of inpainting quality using the \textbf{FID score}~\cite{FID}.
+Our experiments aim to illustrate MaskGIT's effectiveness in generating semantically consistent and visually high-quality image reconstructions.
