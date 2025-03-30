@@ -69,7 +69,6 @@ class TrainTransformer:
 
 def get_args():
     parser = argparse.ArgumentParser(description="MaskGIT")
-    # TODO-2: check your dataset path is correct
     parser.add_argument(
         "--train_d_path",
         type=str,

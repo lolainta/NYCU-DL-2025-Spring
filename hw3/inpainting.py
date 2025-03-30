@@ -28,7 +28,6 @@ class MaskGIT:
         os.makedirs("mask_scheduling", exist_ok=True)
         os.makedirs("imga", exist_ok=True)
 
-    # TODO-3: step1-1: total iteration decoding
     # mask_b: iteration decoding initial mask, where mask_b is true means mask
     def inpainting(self, image, mask_b, i):  # MakGIT inference
         maska = torch.zeros(
@@ -160,7 +159,6 @@ def get_args():
         default="config/MaskGit.yml",
         help="Configurations for MaskGIT",
     )
-    # TODO-3: step1-2: modify the path, MVTM parameters
     parser.add_argument(
         "--load-transformer-ckpt-path",
         type=str,
