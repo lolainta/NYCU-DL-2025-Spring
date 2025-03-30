@@ -22,14 +22,33 @@ class TrainTransformer:
         self.prepare_training()
         self.writer = SummaryWriter()
 
+        train_dataset = LoadTrainData(root=args.train_d_path, partial=args.partial)
+        self.train_loader = DataLoader(
+            train_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            drop_last=True,
+            pin_memory=True,
+            shuffle=True,
+        )
+        val_dataset = LoadTrainData(root=args.val_d_path, partial=args.partial)
+        self.val_loader = DataLoader(
+            val_dataset,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            drop_last=True,
+            pin_memory=True,
+            shuffle=False,
+        )
+
     @staticmethod
     def prepare_training():
         os.makedirs("transformer_checkpoints", exist_ok=True)
 
-    def train_one_epoch(self):
+    def train_one_epoch(self, epoch):
         self.model.train()
         losses = []
-        for i, data in enumerate(tqdm(train_loader, position=0, leave=True)):
+        for i, data in enumerate(tqdm(self.train_loader, position=0, leave=True)):
             self.optim.zero_grad()
             data = data.to(args.device)
             logits, z_indices = self.model(data)
@@ -43,11 +62,11 @@ class TrainTransformer:
         logger.info(f"Epoch {epoch} Loss: {np.mean(losses)}")
         return np.mean(losses)
 
-    def eval_one_epoch(self):
+    def eval_one_epoch(self, epoch):
         self.model.eval()
         losses = []
         with torch.no_grad():
-            for i, data in enumerate(tqdm(val_loader, position=0, leave=True)):
+            for i, data in enumerate(tqdm(self.val_loader, position=0, leave=True)):
                 data = data.to(args.device)
                 logits, z_indices = self.model(data)
                 loss = F.cross_entropy(
@@ -82,12 +101,6 @@ def get_args():
         help="Validation Dataset Path",
     )
     parser.add_argument(
-        "--checkpoint-path",
-        type=str,
-        default="./checkpoints/last_ckpt.pt",
-        help="Path to checkpoint.",
-    )
-    parser.add_argument(
         "--device",
         type=str,
         default="cuda" if torch.cuda.is_available() else "cpu",
@@ -117,28 +130,11 @@ def get_args():
         default=1,
         help="Number for gradient accumulation.",
     )
-    # you can modify the hyperparameters
     parser.add_argument(
         "--epochs",
         type=int,
         default=100,
         help="Number of epochs to train.",
-    )
-    parser.add_argument(
-        "--save-per-epoch",
-        type=int,
-        default=2,
-        help="Save CKPT per ** epochs(defcault: 1)",
-    )
-    parser.add_argument(
-        "--start-from-epoch",
-        type=int,
-        default=0,
-    )
-    parser.add_argument(
-        "--ckpt-interval",
-        type=int,
-        default=100,
     )
     parser.add_argument(
         "--learning-rate",
@@ -156,39 +152,17 @@ def get_args():
     return args
 
 
-if __name__ == "__main__":
-    args = get_args()
-
+def main(args):
     MaskGit_CONFIGS = yaml.safe_load(open(args.MaskGitConfig, "r"))
     train_transformer = TrainTransformer(args, MaskGit_CONFIGS)
-
-    train_dataset = LoadTrainData(root=args.train_d_path, partial=args.partial)
-    train_loader = DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        drop_last=True,
-        pin_memory=True,
-        shuffle=True,
-    )
-
-    val_dataset = LoadTrainData(root=args.val_d_path, partial=args.partial)
-    val_loader = DataLoader(
-        val_dataset,
-        batch_size=args.batch_size,
-        num_workers=args.num_workers,
-        drop_last=True,
-        pin_memory=True,
-        shuffle=False,
-    )
 
     best_train = np.inf
     best_val = np.inf
 
-    for epoch in range(args.start_from_epoch + 1, args.epochs + 1):
+    for epoch in range(1, args.epochs + 1):
         logger.info(f"Epoch {epoch}/{args.epochs}")
-        train_loss = train_transformer.train_one_epoch()
-        val_loss = train_transformer.eval_one_epoch()
+        train_loss = train_transformer.train_one_epoch(epoch)
+        val_loss = train_transformer.eval_one_epoch(epoch)
 
         if train_loss < best_train:
             best_train = train_loss
@@ -202,3 +176,8 @@ if __name__ == "__main__":
                 train_transformer.model.transformer.state_dict(),
                 f"transformer_checkpoints/best_val_ckpt.pt",
             )
+
+
+if __name__ == "__main__":
+    args = get_args()
+    main(args)

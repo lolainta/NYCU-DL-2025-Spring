@@ -9,20 +9,32 @@ In this part, we demonstrate the iterative decoding process for different mask s
 \subsubsection{Mask in Latent Domain}
 Present visualizations of the mask distribution over iterations using different scheduling strategies (cosine, linear, square).
 
-\begin{tikzpicture}
-    \begin{axis}[
-            xmin=0,xmax=1,
-        ]
-        \addplot[domain=0:1,samples=200,red]{1-x};
-        \addlegendentry{Linear Schedule}
-        \addplot[domain=0:1,samples=200,blue]{(cos(deg(x)*pi/2))};
-        \addlegendentry{Cosine Schedule}
-        \addplot[domain=0:1,samples=200,magenta]{1-x^2};
-        \addlegendentry{Square Schedule}
-        \addplot[domain=0:1,samples=200,black]{(1-sqrt(x))};
-        \addlegendentry{Square Root Schedule}
-    \end{axis}
-\end{tikzpicture}
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+        \begin{axis}[
+                % width=0.4\linewidth,
+                % height=0.4\linewidth,
+                grid=major,
+                title={Mask Ratio on Latent Domain},
+                legend pos=outer north east,
+                legend cell align=left,
+                xmin=0,xmax=1,
+                ymin=0,ymax=1,
+                xlabel={Step},
+                ylabel={Mask Ratio},
+            ]
+            \addplot[domain=0:1,samples=200,red]{1-x};
+            \addlegendentry{Linear Schedule}
+            \addplot[domain=0:1,samples=200,blue]{(cos(deg(x)*pi/2))};
+            \addlegendentry{Cosine Schedule}
+            \addplot[domain=0:1,samples=200,magenta]{1-x^2};
+            \addlegendentry{Square Schedule}
+            \addplot[domain=0:1,samples=200,black]{(1-sqrt(x))};
+            \addlegendentry{Square Root Schedule}
+        \end{axis}
+    \end{tikzpicture}
+\end{figure}
 
 \textbf{Cosine Schedule:}
 
