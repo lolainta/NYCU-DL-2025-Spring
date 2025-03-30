@@ -74,6 +74,7 @@ class TrainTransformer:
                 )
                 losses.append(loss.item())
         self.writer.add_scalar("Val Loss", np.mean(losses), epoch)
+        logger.info(f"Epoch {epoch} Val Loss: {np.mean(losses)}")
         return np.mean(losses)
 
     def configure_optimizers(self):
@@ -115,7 +116,7 @@ def get_args():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=8,
+        default=32,
         help="Batch size for training.",
     )
     parser.add_argument(
@@ -133,7 +134,7 @@ def get_args():
     parser.add_argument(
         "--epochs",
         type=int,
-        default=100,
+        default=200,
         help="Number of epochs to train.",
     )
     parser.add_argument(
