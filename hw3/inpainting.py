@@ -1,16 +1,12 @@
-import pandas as pd
-import numpy as np
-from PIL import Image
-import torch
-from torchvision import transforms
 import argparse
-from utils import LoadTestData, LoadMaskData
-from torch.utils.data import Dataset, DataLoader
-from torchvision import utils as vutils
 import os
-from models import MaskGit as VQGANTransformer
+import torch
+from torch.utils.data import DataLoader
+from torchvision import utils as vutils
 import yaml
-import torch.nn.functional as F
+
+from models import MaskGit as VQGANTransformer
+from utils import LoadTestData, LoadMaskData
 
 
 class MaskGIT:
@@ -48,23 +44,28 @@ class MaskGIT:
 
         self.model.eval()
         with torch.no_grad():
-            z_indices = None  # z_indices: masked tokens (b,16*16)
+            _, z_indices = self.model.encode_to_z(image)
             mask_num = mask_b.sum()  # total number of mask token
             z_indices_predict = z_indices
             mask_bc = mask_b
             mask_b = mask_b.to(device=self.device)
             mask_bc = mask_bc.to(device=self.device)
 
-            raise Exception("TODO3 step1-1!")
             ratio = 0
+            dec_img_ori = None
             # iterative decoding for loop design
             # Hint: it's better to save original mask and the updated mask by scheduling separately
             for step in range(self.total_iter):
                 if step == self.sweet_spot:
                     break
-                ratio = None  # this should be updated
+                ratio = step / self.total_iter
 
-                z_indices_predict, mask_bc = self.model.inpainting()
+                z_indices_predict, mask_bc = self.model.inpainting(
+                    z_indices_predict,
+                    mask_bc,
+                    mask_num,
+                    ratio,
+                )
 
                 # static method yon can modify or not, make sure your visualization results are correct
                 mask_i = mask_bc.view(1, 16, 16)
@@ -79,6 +80,7 @@ class MaskGIT:
                 dec_img_ori = (decoded_img[0] * std) + mean
                 imga[step + 1] = dec_img_ori  # get decoded image
 
+            assert dec_img_ori is not None
             ##decoded image of the sweet spot only, the test_results folder path will be the --predicted-path for fid score calculation
             vutils.save_image(
                 dec_img_ori, os.path.join("test_results", f"image_{i:03d}.png"), nrow=1
@@ -126,13 +128,19 @@ class MaskedImage:
         return mask_b
 
 
-if __name__ == "__main__":
+def get_args():
     parser = argparse.ArgumentParser(description="MaskGIT for Inpainting")
     parser.add_argument(
-        "--device", type=str, default="cuda", help="Which device the training is on."
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        help="Which device the training is on.",
     )  # cuda
     parser.add_argument(
-        "--batch-size", type=int, default=1, help="Batch size for testing."
+        "--batch-size",
+        type=int,
+        default=1,
+        help="Batch size for testing.",
     )
     parser.add_argument(
         "--partial",
@@ -140,57 +148,70 @@ if __name__ == "__main__":
         default=1.0,
         help="Number of epochs to train (default: 50)",
     )
-    parser.add_argument("--num_workers", type=int, default=4, help="Number of worker")
-
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=4,
+        help="Number of worker",
+    )
     parser.add_argument(
         "--MaskGitConfig",
         type=str,
         default="config/MaskGit.yml",
         help="Configurations for MaskGIT",
     )
-
     # TODO-3: step1-2: modify the path, MVTM parameters
     parser.add_argument(
-        "--load-transformer-ckpt-path", type=str, default="", help="load ckpt"
+        "--load-transformer-ckpt-path",
+        type=str,
+        help="load ckpt",
+        required=True,
     )
-
     # dataset path
     parser.add_argument(
         "--test-maskedimage-path",
         type=str,
-        default="./cat_face/masked_image",
+        default="./dataset/masked_image",
         help="Path to testing image dataset.",
     )
     parser.add_argument(
         "--test-mask-path",
         type=str,
-        default="./mask64",
+        default="./dataset/mask64",
         help="Path to testing mask dataset.",
     )
     # MVTM parameter
     parser.add_argument(
         "--sweet-spot",
         type=int,
-        default=0,
+        default=8,
         help="sweet spot: the best step in total iteration",
     )
     parser.add_argument(
-        "--total-iter", type=int, default=0, help="total step for mask scheduling"
+        "--total-iter",
+        type=int,
+        default=12,
+        help="total step for mask scheduling",
     )
     parser.add_argument(
-        "--mask-func", type=str, default="0", help="mask scheduling function"
+        "--mask-func",
+        type=str,
+        default="cosine",
+        help="mask scheduling function",
     )
-
     args = parser.parse_args()
+    return args
+
+
+if __name__ == "__main__":
+    args = get_args()
 
     t = MaskedImage(args)
     MaskGit_CONFIGS = yaml.safe_load(open(args.MaskGitConfig, "r"))
     maskgit = MaskGIT(args, MaskGit_CONFIGS)
 
-    i = 0
-    for image, mask in zip(t.mi_ori, t.mask_ori):
+    for i, (image, mask) in enumerate(zip(t.mi_ori, t.mask_ori)):
         image = image.to(device=args.device)
         mask = mask.to(device=args.device)
         mask_b = t.get_mask_latent(mask)
         maskgit.inpainting(image, mask_b, i)
-        i += 1

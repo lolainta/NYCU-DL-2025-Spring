@@ -1,12 +1,19 @@
 import torch.nn as nn
-import torch
-import math
 
 
-# TODO-1:
 class MultiHeadAttention(nn.Module):
     def __init__(self, dim=768, num_heads=16, attn_drop=0.1):
         super(MultiHeadAttention, self).__init__()
+        self.head_num = num_heads
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim**-0.5
+
+        self.to_qkv = nn.Linear(dim, 3 * self.head_num * self.head_dim, bias=False)
+
+        self.head = nn.Sequential(
+            nn.Linear(dim, dim),
+            nn.Dropout(attn_drop),
+        )
 
     def forward(self, x):
         """Hint: input x tensor shape is (batch_size, num_image_tokens, dim),
@@ -16,7 +23,16 @@ class MultiHeadAttention(nn.Module):
         Total d_k , d_v set to 768
         d_k , d_v for one head will be 768//16.
         """
-        raise Exception("TODO1!")
+        qkv = self.to_qkv(x)
+        q, k, v = qkv.chunk(3, dim=-1)
+
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+        weight = attn.softmax(dim=-1)
+        context = weight @ v
+
+        # concat multi-head
+        concat_content = context.view(x.shape[0], -1, self.head_dim * self.head_num)
+        return self.head(concat_content)
 
 
 class MLP(nn.Sequential):

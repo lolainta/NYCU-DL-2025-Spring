@@ -408,7 +408,12 @@ def main():
 
 
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-parser.add_argument("--batch-size", type=int, default=50, help="Batch size to use")
+parser.add_argument(
+    "--batch-size",
+    type=int,
+    default=50,
+    help="Batch size to use",
+)
 parser.add_argument(
     "--num-workers",
     type=int,
@@ -437,13 +442,11 @@ parser.add_argument(
         "The first path is used as input and the second as output."
     ),
 )
-parser.add_argument(
-    "--predicted-path",
-    type=str,
-    default="/home/wendy/Maskgit_CIFAR10cat/models/VQGAN/test_i",
-)
+parser.add_argument("--predicted-path", type=str, default="./test_results/")
 
-parser.add_argument("--gtcsv-path", type=str, default="./test_gt.csv")
+parser.add_argument(
+    "--gtcsv-path", type=str, default="./faster-pytorch-fid/test_gt.csv"
+)
 
 if __name__ == "__main__":
     main()

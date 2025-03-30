@@ -1,13 +1,12 @@
-from torch.utils.data import Dataset as torchData
-from glob import glob
+import os
+from torch.utils.data import Dataset
 from torchvision import transforms
 from torchvision.datasets.folder import default_loader as imgloader
-import os
-import torch.nn as nn
 
 
-class LoadTrainData(torchData):
-    """Training Dataset Loader
+class LoadTrainData(Dataset):
+    """
+    Training Dataset Loader
 
     Args:
         root: Dataset Path
@@ -26,7 +25,6 @@ class LoadTrainData(torchData):
             ]
         )
         self.folder = sorted([os.path.join(root, file) for file in os.listdir(root)])
-        # self.folder = glob(os.path.join(root + '/*.png'))
         self.partial = partial
 
     def __len__(self):
@@ -41,8 +39,9 @@ class LoadTrainData(torchData):
         return self.transform(imgloader(path))
 
 
-class LoadTestData(torchData):
-    """Training Dataset Loader
+class LoadTestData(Dataset):
+    """
+    Training Dataset Loader
 
     Args:
         root: Dataset Path
@@ -75,8 +74,9 @@ class LoadTestData(torchData):
         return self.transform(imgloader(path))
 
 
-class LoadMaskData(torchData):
-    """Training Dataset Loader
+class LoadMaskData(Dataset):
+    """
+    Training Dataset Loader
 
     Args:
         root: Dataset Path

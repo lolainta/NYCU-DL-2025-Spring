@@ -1,1 +1,5 @@
 dataset/
+test_results/
+mask_scheduling/
+runs/
+imga/

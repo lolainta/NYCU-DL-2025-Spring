@@ -1,18 +1,18 @@
-import os
-import numpy as np
-from tqdm import tqdm
 import argparse
+from loguru import logger
+import numpy as np
+import os
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import utils as vutils
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
+from tqdm import tqdm
+import yaml
+
 from models import MaskGit as VQGANTransformer
 from utils import LoadTrainData
-import yaml
-from torch.utils.data import DataLoader
 
 
-# TODO-2: step1-4: design the transformer training strategy
 class TrainTransformer:
     def __init__(self, args, MaskGit_CONFIGS):
         self.model = VQGANTransformer(MaskGit_CONFIGS["model_param"]).to(
@@ -20,20 +20,50 @@ class TrainTransformer:
         )
         self.optim, self.scheduler = self.configure_optimizers()
         self.prepare_training()
+        self.writer = SummaryWriter()
 
     @staticmethod
     def prepare_training():
         os.makedirs("transformer_checkpoints", exist_ok=True)
 
     def train_one_epoch(self):
-        pass
+        self.model.train()
+        losses = []
+        for i, data in enumerate(tqdm(train_loader, position=0, leave=True)):
+            self.optim.zero_grad()
+            data = data.to(args.device)
+            logits, z_indices = self.model(data)
+            loss = F.cross_entropy(logits.view(-1, logits.size(-1)), z_indices.view(-1))
+            loss.backward()
+            losses.append(loss.item())
+            if i % args.accum_grad == 0:
+                self.optim.step()
+            self.writer.add_scalar("Loss", loss.item(), i)
+        self.writer.add_scalar("Epoch Loss", np.mean(losses), epoch)
+        logger.info(f"Epoch {epoch} Loss: {np.mean(losses)}")
+        return np.mean(losses)
 
     def eval_one_epoch(self):
-        pass
+        self.model.eval()
+        losses = []
+        with torch.no_grad():
+            for i, data in enumerate(tqdm(val_loader, position=0, leave=True)):
+                data = data.to(args.device)
+                logits, z_indices = self.model(data)
+                loss = F.cross_entropy(
+                    logits.view(-1, logits.size(-1)), z_indices.view(-1)
+                )
+                losses.append(loss.item())
+        self.writer.add_scalar("Val Loss", np.mean(losses), epoch)
+        return np.mean(losses)
 
     def configure_optimizers(self):
-        optimizer = None
-        scheduler = None
+        optimizer = torch.optim.Adam(
+            self.model.parameters(),
+            lr=args.learning_rate,
+            betas=(0.9, 0.999),
+        )
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
         return optimizer, scheduler
 
 
@@ -43,13 +73,13 @@ def get_args():
     parser.add_argument(
         "--train_d_path",
         type=str,
-        default="./cat_face/train/",
+        default="./dataset/train/",
         help="Training Dataset Path",
     )
     parser.add_argument(
         "--val_d_path",
         type=str,
-        default="./cat_face/val/",
+        default="./dataset/val/",
         help="Validation Dataset Path",
     )
     parser.add_argument(
@@ -61,13 +91,13 @@ def get_args():
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda:0",
+        default="cuda" if torch.cuda.is_available() else "cpu",
         help="Which device the training is on.",
     )
     parser.add_argument(
         "--num_workers",
         type=int,
-        default=4,
+        default=os.cpu_count(),
         help="Number of worker",
     )
     parser.add_argument(
@@ -85,38 +115,36 @@ def get_args():
     parser.add_argument(
         "--accum-grad",
         type=int,
-        default=10,
+        default=1,
         help="Number for gradient accumulation.",
     )
     # you can modify the hyperparameters
     parser.add_argument(
         "--epochs",
         type=int,
-        default=0,
+        default=10,
         help="Number of epochs to train.",
     )
     parser.add_argument(
         "--save-per-epoch",
         type=int,
-        default=1,
+        default=2,
         help="Save CKPT per ** epochs(defcault: 1)",
     )
     parser.add_argument(
         "--start-from-epoch",
         type=int,
         default=0,
-        help="Number of epochs to train.",
     )
     parser.add_argument(
         "--ckpt-interval",
         type=int,
-        default=0,
-        help="Number of epochs to train.",
+        default=100,
     )
     parser.add_argument(
         "--learning-rate",
         type=float,
-        default=0,
+        default=0.0001,
         help="Learning rate.",
     )
     parser.add_argument(
@@ -155,6 +183,23 @@ if __name__ == "__main__":
         shuffle=False,
     )
 
-    # TODO-2: step1-5:
+    best_train = np.inf
+    best_val = np.inf
+
     for epoch in range(args.start_from_epoch + 1, args.epochs + 1):
-        pass
+        logger.info(f"Epoch {epoch}/{args.epochs}")
+        train_loss = train_transformer.train_one_epoch()
+        val_loss = train_transformer.eval_one_epoch()
+
+        if train_loss < best_train:
+            best_train = train_loss
+            torch.save(
+                train_transformer.model.transformer.state_dict(),
+                f"transformer_checkpoints/best_train_ckpt.pt",
+            )
+        if val_loss < best_val:
+            best_val = val_loss
+            torch.save(
+                train_transformer.model.transformer.state_dict(),
+                f"transformer_checkpoints/best_val_ckpt.pt",
+            )
