@@ -61,7 +61,7 @@ class TrainTransformer:
         optimizer = torch.optim.Adam(
             self.model.parameters(),
             lr=args.learning_rate,
-            betas=(0.9, 0.999),
+            betas=(0.9, 0.96),
         )
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
         return optimizer, scheduler
@@ -102,7 +102,7 @@ def get_args():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=10,
+        default=8,
         help="Batch size for training.",
     )
     parser.add_argument(
@@ -121,7 +121,7 @@ def get_args():
     parser.add_argument(
         "--epochs",
         type=int,
-        default=10,
+        default=100,
         help="Number of epochs to train.",
     )
     parser.add_argument(

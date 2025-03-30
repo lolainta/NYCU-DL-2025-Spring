@@ -49,9 +49,11 @@ class MaskGit(nn.Module):
         if mode == "linear":
             return lambda ratio: 1 - ratio
         elif mode == "cosine":
-            return lambda ratio: 0.5 * (1 + math.cos(math.pi * ratio))
+            return lambda ratio: math.cos(ratio * math.pi / 2)
         elif mode == "square":
             return lambda ratio: 1 - ratio**2
+        elif mode == "square_root":
+            return lambda ratio: 1 - ratio**0.5
         else:
             raise NotImplementedError
 
