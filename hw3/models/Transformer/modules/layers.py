@@ -27,8 +27,8 @@ class MultiHeadAttention(nn.Module):
         q, k, v = qkv.view(
             3,
             x.shape[0],
-            x.shape[1],
             self.head_num,
+            x.shape[1],
             self.head_dim,
         ).unbind(dim=0)
 
