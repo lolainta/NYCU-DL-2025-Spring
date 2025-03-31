@@ -3,6 +3,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from torchvision import utils as vutils
+from loguru import logger
 import yaml
 
 from models import MaskGit as VQGANTransformer
@@ -203,6 +204,7 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
+    logger.info(args)
 
     t = MaskedImage(args)
     MaskGit_CONFIGS = yaml.safe_load(open(args.MaskGitConfig, "r"))

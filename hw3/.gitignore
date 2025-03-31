@@ -3,3 +3,4 @@ test_results/
 mask_scheduling/
 runs/
 imga/
+transformer_checkpoints/
