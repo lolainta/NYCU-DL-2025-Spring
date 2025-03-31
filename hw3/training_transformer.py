@@ -48,7 +48,9 @@ class TrainTransformer:
     def train_one_epoch(self, epoch):
         self.model.train()
         losses = []
-        for i, data in enumerate(tqdm(self.train_loader, position=0, leave=True)):
+        for i, data in enumerate(
+            tqdm(self.train_loader, position=0, leave=True, unit_scale=args.batch_size)
+        ):
             self.optim.zero_grad()
             data = data.to(args.device)
             logits, z_indices = self.model(data)
@@ -66,7 +68,12 @@ class TrainTransformer:
         self.model.eval()
         losses = []
         with torch.no_grad():
-            for i, data in enumerate(tqdm(self.val_loader, position=0, leave=True)):
+            for data in tqdm(
+                self.val_loader,
+                position=0,
+                leave=True,
+                unit_scale=args.batch_size,
+            ):
                 data = data.to(args.device)
                 logits, z_indices = self.model(data)
                 loss = F.cross_entropy(
