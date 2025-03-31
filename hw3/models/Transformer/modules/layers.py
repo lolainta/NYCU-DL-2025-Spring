@@ -24,13 +24,13 @@ class MultiHeadAttention(nn.Module):
         d_k , d_v for one head will be 768//16.
         """
         qkv = self.to_qkv(x)
-        q, k, v = qkv.view(
+        q, k, v = qkv.reshape(
             3,
             x.shape[0],
             self.head_num,
             x.shape[1],
             self.head_dim,
-        ).unbind(dim=0)
+        )
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
         weight = attn.softmax(dim=-1)

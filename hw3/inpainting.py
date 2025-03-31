@@ -1,5 +1,6 @@
 import argparse
 import os
+from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader
 from torchvision import utils as vutils
@@ -88,9 +89,11 @@ class MaskGIT:
 
             # demo score
             vutils.save_image(
-                maska, os.path.join("mask_scheduling", f"test_{i}.png"), nrow=10
+                maska,
+                os.path.join("mask_scheduling", f"test_{i}.png"),
+                nrow=4,
             )
-            vutils.save_image(imga, os.path.join("imga", f"test_{i}.png"), nrow=7)
+            vutils.save_image(imga, os.path.join("imga", f"test_{i}.png"), nrow=3)
 
 
 class MaskedImage:
@@ -189,7 +192,7 @@ def get_args():
     parser.add_argument(
         "--total-iter",
         type=int,
-        default=12,
+        default=8,
         help="total step for mask scheduling",
     )
     parser.add_argument(
@@ -197,6 +200,7 @@ def get_args():
         type=str,
         default="cosine",
         help="mask scheduling function",
+        choices=["cosine", "linear", "square", "square_root"],
     )
     args = parser.parse_args()
     return args
@@ -210,7 +214,9 @@ if __name__ == "__main__":
     MaskGit_CONFIGS = yaml.safe_load(open(args.MaskGitConfig, "r"))
     maskgit = MaskGIT(args, MaskGit_CONFIGS)
 
-    for i, (image, mask) in enumerate(zip(t.mi_ori, t.mask_ori)):
+    for i, (image, mask) in tqdm(
+        enumerate(zip(t.mi_ori, t.mask_ori)), total=len(t.mi_ori)
+    ):
         image = image.to(device=args.device)
         mask = mask.to(device=args.device)
         mask_b = t.get_mask_latent(mask)

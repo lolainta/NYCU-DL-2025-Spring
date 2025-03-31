@@ -21,8 +21,8 @@ The masked sequence is then passed through a bidirectional Transformer, which pr
 The training objective is to minimize the cross-entropy loss between the predicted tokens and the ground-truth latent tokens.
 
 Specific details regarding mask token selection, masking ratios, and Transformer configurations are described explicitly in the source code implementation.
-\inputminted[firstline=33, lastline=35]{python}{../models/VQGAN_Transformer.py}
-\inputminted[firstline=58, lastline=69]{python}{../models/VQGAN_Transformer.py}
+\inputminted[firstline=32, lastline=36]{python}{../models/VQGAN_Transformer.py}
+\inputminted[firstline=60, lastline=71]{python}{../models/VQGAN_Transformer.py}
 
 \subsection{Iterative Decoding for Inpainting}
 
@@ -34,6 +34,6 @@ This iterative decoding continues until no masked tokens remain.
 
 Implementation details such as temperature annealing, Gumbel noise application for sampling tokens, and specific mask scheduling functions are available within the provided implementation.
 
-\inputminted[firstline=32, lastline=92, highlightlines={47,60,62-67}]{python}{../inpainting.py}
+\inputminted[firstline=33, lastline=93, highlightlines={47,61,63-68}]{python}{../inpainting.py}
 
 \inputminted[firstline=71, lastline=109]{python}{../models/VQGAN_Transformer.py}

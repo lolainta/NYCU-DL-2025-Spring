@@ -49,7 +49,13 @@ class TrainTransformer:
         self.model.train()
         losses = []
         for i, data in enumerate(
-            tqdm(self.train_loader, position=0, leave=True, unit_scale=args.batch_size)
+            tqdm(
+                self.train_loader,
+                position=0,
+                leave=True,
+                unit_scale=args.batch_size,
+                dynamic_ncols=True,
+            )
         ):
             self.optim.zero_grad()
             data = data.to(args.device)
@@ -59,8 +65,7 @@ class TrainTransformer:
             losses.append(loss.item())
             if i % args.accum_grad == 0:
                 self.optim.step()
-            self.writer.add_scalar("Loss", loss.item(), i)
-        self.writer.add_scalar("Epoch Loss", np.mean(losses), epoch)
+        self.writer.add_scalar("Train Loss", np.mean(losses), epoch)
         logger.info(f"Epoch {epoch} Loss: {np.mean(losses)}")
         return np.mean(losses)
 
@@ -173,12 +178,18 @@ def main(args):
         val_loss = train_transformer.eval_one_epoch(epoch)
 
         if train_loss < best_train:
+            logger.info(
+                f"Find lower training loss ({train_loss} < {best_train}), replace best_train_ckpt."
+            )
             best_train = train_loss
             torch.save(
                 train_transformer.model.transformer.state_dict(),
                 f"transformer_checkpoints/best_train_ckpt.pt",
             )
         if val_loss < best_val:
+            logger.info(
+                f"Find lower validation loss ({val_loss} < {best_val}), replace best_val_ckpt."
+            )
             best_val = val_loss
             torch.save(
                 train_transformer.model.transformer.state_dict(),
