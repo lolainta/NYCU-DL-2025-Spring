@@ -1,11 +1,11 @@
 import torch.nn as nn
 import torch
 
-    
+
 class ResidualBlock(nn.Module):
     def __init__(self, in_ch: int, out_ch: int, stride=1):
         super().__init__()
-        
+
         self.conv1 = nn.Conv2d(in_ch, out_ch, kernel_size=3, stride=stride, padding=1)
         self.leaky_relu = nn.LeakyReLU(inplace=True)
         self.conv2 = nn.Conv2d(out_ch, out_ch, kernel_size=3, stride=stride, padding=1)
@@ -27,7 +27,8 @@ class ResidualBlock(nn.Module):
 
         out = out + identity
         return out
-    
+
+
 class DepthConvBlock(nn.Module):
     def __init__(self, in_ch, out_ch, depth_kernel=3, stride=1):
         super().__init__()
@@ -38,7 +39,8 @@ class DepthConvBlock(nn.Module):
 
     def forward(self, x):
         return self.block(x)
-    
+
+
 class ConvFFN(nn.Module):
     def __init__(self, in_ch, slope=0.1, inplace=False):
         super().__init__()
@@ -54,17 +56,21 @@ class ConvFFN(nn.Module):
         x1, x2 = self.conv(x).chunk(2, 1)
         out = x1 * self.relu(x2)
         return identity + self.conv_out(out)
-    
+
+
 class DepthConv(nn.Module):
-    def __init__(self, in_ch, out_ch, depth_kernel=3, stride=1, slope=0.01, inplace=False):
+    def __init__(
+        self, in_ch, out_ch, depth_kernel=3, stride=1, slope=0.01, inplace=False
+    ):
         super().__init__()
         dw_ch = in_ch * 1
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_ch, dw_ch, 1, stride=stride),
             nn.LeakyReLU(negative_slope=slope, inplace=inplace),
         )
-        self.depth_conv = nn.Conv2d(dw_ch, dw_ch, depth_kernel, padding=depth_kernel // 2,
-                                    groups=dw_ch)
+        self.depth_conv = nn.Conv2d(
+            dw_ch, dw_ch, depth_kernel, padding=depth_kernel // 2, groups=dw_ch
+        )
         self.conv2 = nn.Conv2d(dw_ch, out_ch, 1)
 
         self.adaptor = None
