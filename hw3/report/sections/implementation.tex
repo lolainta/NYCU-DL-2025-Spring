@@ -1,0 +1,39 @@
+\section{Implementation Details}
+\label{sec:implementation}
+
+This section provides a detailed explanation of our implementation, which is structured into three parts: Multi-Head Self-Attention, Masked Visual Token Modeling (MVTM), and Iterative Decoding for Inpainting.
+
+\subsection{Multi-Head Self-Attention}
+In the Multi-Head Self-Attention implementation, the input tensor is first linearly projected into query (Q), key (K), and value (V) vectors.
+Each of these vectors is reshaped into multiple heads to allow parallel attention computation.
+We employ scaled dot-product attention independently on each head, which calculates attention scores by the dot product of Q and K, scaled by the square root of the dimension of the keys.
+After computing the softmax scores, they are applied to the values (V).
+The outputs from different heads are concatenated and passed through a final linear layer to produce the attention output.
+
+Specific implementation details and dimension calculations can be referred to in the provided source code.
+
+\inputminted[firstline=4, lastline=35]{python}{../models/Transformer/modules/layers.py}
+
+\subsection{Masked Visual Token Modeling (MVTM)}
+The MVTM module begins by encoding input images into latent tokens using a pretrained VQGAN encoder.
+We randomly mask a subset of these tokens based on a Bernoulli distribution, replacing masked tokens with a dedicated mask token identifier.
+The masked sequence is then passed through a bidirectional Transformer, which predicts the original tokens at masked positions.
+The training objective is to minimize the cross-entropy loss between the predicted tokens and the ground-truth latent tokens.
+
+Specific details regarding mask token selection, masking ratios, and Transformer configurations are described explicitly in the source code implementation.
+\inputminted[firstline=32, lastline=36]{python}{../models/VQGAN_Transformer.py}
+\inputminted[firstline=60, lastline=71]{python}{../models/VQGAN_Transformer.py}
+
+\subsection{Iterative Decoding for Inpainting}
+
+During inference, iterative decoding reconstructs masked regions of latent tokens through successive refinement.
+Initially, all masked positions are filled with the mask token.
+At each decoding iteration, the Transformer predicts token probabilities, and tokens with the highest confidence scores are fixed for subsequent iterations, while lower confidence tokens are remasked.
+Various mask scheduling strategies, including cosine, linear, and square, determine how the masking ratio decreases throughout the iterations.
+This iterative decoding continues until no masked tokens remain.
+
+Implementation details such as temperature annealing, Gumbel noise application for sampling tokens, and specific mask scheduling functions are available within the provided implementation.
+
+\inputminted[firstline=33, lastline=93, highlightlines={47,61,63-68}]{python}{../inpainting.py}
+
+\inputminted[firstline=71, lastline=109]{python}{../models/VQGAN_Transformer.py}

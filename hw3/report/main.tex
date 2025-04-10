@@ -1,0 +1,67 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage[hidelinks]{hyperref}
+
+\usepackage[svgnames]{xcolor}
+\usepackage[outputdir=build]{minted}
+
+\definecolor{bgcolor}{rgb}{0.95, 0.95, 0.95}  % Light gray background for readability
+\setminted{
+    fontsize=\small,    % Adjust code font size
+    linenos=true,       % Enable line numbers
+    numbersep=5pt,      % Space between numbers and code
+    frame=single,       % Box around code
+    framesep=2mm,       % Padding inside the frame
+    bgcolor=bgcolor,    % Background color
+    breaklines=true,    % Line breaking
+    tabsize=4           % Consistent tab width
+}
+
+\usepackage[T1]{fontenc}
+\usepackage{inconsolata}
+\usepackage{newtxtext,newtxmath}
+\usepackage[expanded]{mfirstuc}
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+
+\usepackage{amsmath}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{diagbox}
+
+\usepackage[
+    backend=biber,
+    style=ieee,
+    sortcites=true,
+]{biblatex}
+\addbibresource{references.bib}
+
+
+
+\title{Deep Learning Homework 3 Report}
+\author{Cheng-Liang Chi}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\input{sections/introduction.tex}
+\input{sections/implementation.tex}
+\input{sections/discussion.tex}
+\input{sections/experiment.tex}
+
+\nocite{Hank891008}
+\printbibliography
+
+\end{document}

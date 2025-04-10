@@ -1,0 +1,13 @@
+\section{Discussion}
+\label{sec:discussion}
+
+In this section, we discuss key insights gained from our experiments, potential limitations of our approach, and directions for future improvement.
+
+My experiments showed the choice of mask scheduling function significantly influences the quality of inpainting results.
+The cosine scheduling consistently delivered the best performance, highlighting its effectiveness in gradually and smoothly reducing the mask ratio.
+Conversely, linear and square schedules showed slightly lower performance, possibly due to abrupt or uneven changes in masking ratios.
+
+Another area worth exploring is the impact of different iterative decoding parameters, such as the number of iterations and the sweet spot.
+While my current settings provided good results, further experiments could optimize these parameters to balance computational efficiency and inpainting quality.
+
+Lastly, future work might include applying our MaskGIT implementation to higher-resolution datasets or exploring other Transformer architectures to potentially improve inpainting quality and diversity further.
