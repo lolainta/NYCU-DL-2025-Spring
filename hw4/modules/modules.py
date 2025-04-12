@@ -1,7 +1,8 @@
 import torch.nn as nn
 import torch
 from .layers import DepthConvBlock, ResidualBlock
-from torch.autograd import Variable
+
+from loguru import logger
 
 
 __all__ = [
@@ -14,7 +15,8 @@ __all__ = [
 
 
 class Generator(nn.Sequential):
-    def __init__(self, input_nc, output_nc):
+    def __init__(self, input_nc, output_nc=3):
+        assert output_nc == 3
         super(Generator, self).__init__(
             DepthConvBlock(input_nc, input_nc),
             ResidualBlock(input_nc, input_nc // 2),
@@ -23,7 +25,7 @@ class Generator(nn.Sequential):
             DepthConvBlock(input_nc // 4, input_nc // 4),
             ResidualBlock(input_nc // 4, input_nc // 8),
             DepthConvBlock(input_nc // 8, input_nc // 8),
-            nn.Conv2d(input_nc // 8, 3, 1),
+            nn.Conv2d(input_nc // 8, output_nc, 1),
         )
 
     def forward(self, input):
@@ -42,8 +44,8 @@ class RGB_Encoder(nn.Sequential):
             nn.Conv2d(out_chans // 2, out_chans, 3, padding=1),
         )
 
-    def forward(self, image):
-        return super().forward(image)
+    def forward(self, input):
+        return super().forward(input)
 
 
 class Label_Encoder(nn.Sequential):
@@ -56,7 +58,7 @@ class Label_Encoder(nn.Sequential):
             ResidualBlock(in_ch=out_chans // 2, out_ch=out_chans),
         )
 
-    def forward(self, image):
+    def forward(self, image):  # type: ignore
         return super().forward(image)
 
 
@@ -73,10 +75,12 @@ class Gaussian_Predictor(nn.Sequential):
         )
 
     def reparameterize(self, mu, logvar):
-        # TODO
-        raise NotImplementedError
+        std = torch.exp(0.5 * logvar)
+        # eps = Variable(std.data.new(std.size()).normal_())
+        eps = torch.randn_like(std)
+        return mu + eps * std
 
-    def forward(self, img, label):
+    def forward(self, img, label):  # type: ignore
         feature = torch.cat([img, label], dim=1)
         parm = super().forward(feature)
         mu, logvar = torch.chunk(parm, 2, dim=1)
@@ -96,7 +100,7 @@ class Decoder_Fusion(nn.Sequential):
             nn.Conv2d(out_chans // 2, out_chans, 1, 1),
         )
 
-    def forward(self, img, label, parm):
+    def forward(self, img, label, parm):  # type: ignore
         feature = torch.cat([img, label, parm], dim=1)
         return super().forward(feature)
 

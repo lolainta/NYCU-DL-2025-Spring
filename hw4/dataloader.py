@@ -19,7 +19,7 @@ class Dataset_Dance(torchData):
     Args:
         root (str)      : The path of your Dataset
         transform       : Transformation to your dataset
-        mode (str)      : train, val, test
+        mode (str)      : train, val
         partial (float) : Percentage of your Dataset, may set to use part of the dataset
     """
 
@@ -37,7 +37,7 @@ class Dataset_Dance(torchData):
             )
             self.prefix = "val"
         else:
-            raise NotImplementedError
+            raise ValueError("There is no such mode !!!")
 
         self.transform = transform
         self.partial = partial

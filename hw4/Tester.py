@@ -1,26 +1,15 @@
 import os
 import argparse
 import numpy as np
+import random
 import torch
-import torch.nn as nn
 from torchvision import transforms
 from tqdm import tqdm
-
-from modules import (
-    Generator,
-    Gaussian_Predictor,
-    Decoder_Fusion,
-    Label_Encoder,
-    RGB_Encoder,
-)
-from torchvision.utils import save_image
 from torch import stack
-
-import imageio
-from math import log10
-from Trainer import VAE_Model
 import glob
 import pandas as pd
+
+from Trainer import VAE_Model
 
 
 TA_ = """
@@ -51,7 +40,7 @@ class Dataset_Dance(torchData):
         self.img_folder = []
         self.label_folder = []
 
-        data_num = len(glob("./Demo_Test/*"))
+        data_num = len(os.listdir(os.path.join(root, "test/test_img/")))
         for i in range(data_num):
             self.img_folder.append(
                 sorted(glob(os.path.join(root, f"test/test_img/{i}/*")), key=get_key)
@@ -79,28 +68,7 @@ class Dataset_Dance(torchData):
 
 class Test_model(VAE_Model):
     def __init__(self, args):
-        super(VAE_Model, self).__init__()
-        self.args = args
-
-        # Modules to transform image from RGB-domain to feature-domain
-        self.frame_transformation = RGB_Encoder(3, args.F_dim)
-        self.label_transformation = Label_Encoder(3, args.L_dim)
-
-        # Conduct Posterior prediction in Encoder
-        self.Gaussian_Predictor = Gaussian_Predictor(
-            args.F_dim + args.L_dim, args.N_dim
-        )
-        self.Decoder_Fusion = Decoder_Fusion(
-            args.F_dim + args.L_dim + args.N_dim, args.D_out_dim
-        )
-
-        self.Generator = Generator(input_nc=args.D_out_dim, output_nc=3)
-
-        self.mse_criterion = nn.MSELoss()
-        self.current_epoch = 0
-
-        self.val_vi_len = args.val_vi_len
-        self.batch_size = args.batch_size
+        super().__init__(args, writer=False)
 
     def forward(self, img, label):
         pass
@@ -109,7 +77,7 @@ class Test_model(VAE_Model):
     def eval(self):
         val_loader = self.val_dataloader()
         pred_seq_list = []
-        for idx, (img, label) in enumerate(tqdm(val_loader, ncols=80)):
+        for idx, (img, label) in enumerate(tqdm(val_loader, dynamic_ncols=True)):
             img = img.to(self.args.device)
             label = label.to(self.args.device)
             pred_seq = self.val_one_step(img, label, idx)
@@ -118,13 +86,14 @@ class Test_model(VAE_Model):
         # submission.csv is the file you should submit to kaggle
         pred_to_int = (np.rint(torch.cat(pred_seq_list).numpy() * 255)).astype(int)
         df = pd.DataFrame(pred_to_int)
-        df.insert(0, "id", range(0, len(df)))
+        df.insert(0, "id", range(0, len(df)))  # type: ignore
         df.to_csv(
             os.path.join(self.args.save_root, f"submission.csv"),
             header=True,
             index=False,
         )
 
+    @torch.no_grad
     def val_one_step(self, img, label, idx=0):
         img = img.permute(1, 0, 2, 3, 4)  # change tensor into (seq, B, C, H, W)
         label = label.permute(1, 0, 2, 3, 4)  # change tensor into (seq, B, C, H, W)
@@ -137,8 +106,22 @@ class Test_model(VAE_Model):
         decoded_frame_list = [img[0].cpu()]
         label_list = []
 
-        # TODO
-        raise NotImplementedError
+        prev_frame = img[0]
+        for i in range(1, args.val_vi_len):
+            # Encode the current frame and label
+            trans_prev_frame = self.frame_transformation(prev_frame)
+            trans_cur_label = self.label_transformation(label[i])
+            z = torch.randn(
+                (1, args.N_dim, self.args.frame_H, self.args.frame_W),
+                device=args.device,
+            )
+            df_out = self.Decoder_Fusion(trans_prev_frame, trans_cur_label, z)
+            pred_frame = self.Generator(df_out)
+
+            decoded_frame_list.append(pred_frame.cpu())
+            label_list.append(label[i].cpu())
+
+            prev_frame = pred_frame
 
         # Please do not modify this part, it is used for visulization
         generated_frame = stack(decoded_frame_list).permute(1, 0, 2, 3, 4)
@@ -208,6 +191,13 @@ def main(args):
 
 
 if __name__ == "__main__":
+    seed = 42
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--lr", type=float, default=0.001, help="initial learning rate")

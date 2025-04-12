@@ -13,6 +13,7 @@ imageio==2.37.0
 Jinja2==3.1.6
 kaggle==1.7.4.2
 kiwisolver==1.4.8
+loguru==0.7.3
 Markdown==3.7
 MarkupSafe==3.0.2
 matplotlib==3.10.1

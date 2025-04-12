@@ -1,10 +1,10 @@
 import os
 import argparse
-import numpy as np
 import torch
 import torch.nn as nn
 from torchvision import transforms
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
 
 from modules import (
     Generator,
@@ -15,16 +15,14 @@ from modules import (
 )
 
 from dataloader import Dataset_Dance
-from torchvision.utils import save_image
 import random
 import torch.optim as optim
-from torch import stack
 
 from tqdm import tqdm
-import imageio
 
-import matplotlib.pyplot as plt
 from math import log10
+
+from loguru import logger
 
 
 def Generate_PSNR(imgs1, imgs2, data_range=1.0):
@@ -42,24 +40,46 @@ def kl_criterion(mu, logvar, batch_size):
 
 class kl_annealing:
     def __init__(self, args, current_epoch=0):
-        # TODO
-        raise NotImplementedError
+        self.anneal_type = args.kl_anneal_type
+        self.step = current_epoch
+
+        match self.anneal_type:
+            case "Constant":
+                self.L = torch.ones(args.num_epoch)
+            case "Linear":
+                self.L = torch.linspace(0, 1, args.num_epoch)
+            case "Cyclical":
+                self.L = self.frange_cycle_linear(
+                    args.num_epoch,
+                    start=0.0,
+                    stop=1.0,
+                    n_cycle=args.kl_anneal_cycle,
+                    ratio=args.kl_anneal_ratio,
+                )
+        self.L = self.L.to(args.device)
 
     def update(self):
-        # TODO
-        raise NotImplementedError
+        self.step += 1
 
     def get_beta(self):
-        # TODO
-        raise NotImplementedError
+        return self.L[self.step]
 
-    def frange_cycle_linear(self, n_iter, start=0.0, stop=1.0, n_cycle=1, ratio=1):
-        # TODO
-        raise NotImplementedError
+    def frange_cycle_linear(self, n_iter, start=0.0, stop=1.0, n_cycle=4, ratio=0.5):
+        L = torch.ones(n_iter) * stop
+        period = n_iter / n_cycle
+        step = (stop - start) / (period * ratio)  # linear schedule
+
+        for c in range(n_cycle):
+            v, i = start, 0
+            while v <= stop and (int(i + c * period) < n_iter):
+                L[int(i + c * period)] = v
+                v += step
+                i += 1
+        return L
 
 
 class VAE_Model(nn.Module):
-    def __init__(self, args):
+    def __init__(self, args, writer=True):
         super(VAE_Model, self).__init__()
         self.args = args
 
@@ -95,15 +115,18 @@ class VAE_Model(nn.Module):
         self.val_vi_len = args.val_vi_len
         self.batch_size = args.batch_size
 
+        if writer:
+            self.writer = SummaryWriter()
+
     def forward(self, img, label):
         pass
 
     def training_stage(self):
-        for i in range(self.args.num_epoch):
+        for _ in range(self.args.num_epoch):
             train_loader = self.train_dataloader()
-            adapt_TeacherForcing = True if random.random() < self.tfr else False
+            adapt_TeacherForcing: bool = True if random.random() < self.tfr else False
 
-            for img, label in (pbar := tqdm(train_loader, ncols=120)):
+            for img, label in (pbar := tqdm(train_loader, dynamic_ncols=True)):
                 img = img.to(self.args.device)
                 label = label.to(self.args.device)
                 loss = self.training_one_step(img, label, adapt_TeacherForcing)
@@ -111,18 +134,14 @@ class VAE_Model(nn.Module):
                 beta = self.kl_annealing.get_beta()
                 if adapt_TeacherForcing:
                     self.tqdm_bar(
-                        "train [TeacherForcing: ON, {:.1f}], beta: {}".format(
-                            self.tfr, beta
-                        ),
+                        f"train [TeacherForcing: ON, {self.tfr:.1f}], beta: {beta:.2f}",
                         pbar,
                         loss.detach().cpu(),
                         lr=self.scheduler.get_last_lr()[0],
                     )
                 else:
                     self.tqdm_bar(
-                        "train [TeacherForcing: OFF, {:.1f}], beta: {}".format(
-                            self.tfr, beta
-                        ),
+                        f"train [TeacherForcing: OFF, {self.tfr:.1f}], beta: {beta:.2f}",
                         pbar,
                         loss.detach().cpu(),
                         lr=self.scheduler.get_last_lr()[0],
@@ -135,6 +154,11 @@ class VAE_Model(nn.Module):
                     )
                 )
 
+            self.writer.add_scalar("TFR/train", self.tfr, self.current_epoch)
+            self.writer.add_scalar(
+                "Beta/train", self.kl_annealing.get_beta(), self.current_epoch
+            )
+
             self.eval()
             self.current_epoch += 1
             self.scheduler.step()
@@ -142,9 +166,9 @@ class VAE_Model(nn.Module):
             self.kl_annealing.update()
 
     @torch.no_grad()
-    def eval(self):
+    def eval(self):  # type: ignore
         val_loader = self.val_dataloader()
-        for img, label in (pbar := tqdm(val_loader, ncols=120)):
+        for img, label in (pbar := tqdm(val_loader, dynamic_ncols=True)):
             img = img.to(self.args.device)
             label = label.to(self.args.device)
             loss = self.val_one_step(img, label)
@@ -152,13 +176,70 @@ class VAE_Model(nn.Module):
                 "val", pbar, loss.detach().cpu(), lr=self.scheduler.get_last_lr()[0]
             )
 
-    def training_one_step(self, img, label, adapt_TeacherForcing):
-        # TODO
-        raise NotImplementedError
+    def training_one_step(self, img, label, adapt_TeacherForcing: bool) -> torch.Tensor:
+        # image shape: [batch_size, video_len, channel, height, width]
+        # label shape: [batch_size, video_len, channel, height, width]
 
+        mse_loss = torch.zeros(1).to(self.args.device)
+        kl_loss = torch.zeros(1).to(self.args.device)
+
+        prev_frame = img[:, 0, :, :, :].clone()
+        for i in range(1, self.args.train_vi_len):
+            trans_prev_frame = self.frame_transformation(prev_frame)
+            trans_cur_frame = self.frame_transformation(img[:, i, :, :, :])
+            trans_cur_label = self.label_transformation(label[:, i, :, :, :])
+            z, mu, logvar = self.Gaussian_Predictor(trans_cur_frame, trans_cur_label)
+            df_out = self.Decoder_Fusion(trans_prev_frame, trans_cur_label, z)
+            pred_frame = self.Generator(df_out)
+
+            if torch.isnan(pred_frame).any():
+                raise ValueError("NaN in prev_frame")
+
+            kl_loss += kl_criterion(mu, logvar, self.batch_size)
+            mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
+
+            prev_frame = img[:, i, :, :, :] if adapt_TeacherForcing else pred_frame
+        mse_loss /= self.args.train_vi_len - 1
+        kl_loss /= self.args.train_vi_len - 1
+        loss = mse_loss + self.kl_annealing.get_beta() * kl_loss
+
+        self.optim.zero_grad()
+        loss.backward()
+        self.optimizer_step()
+
+        self.writer.add_scalar("MSE/train", mse_loss.item(), self.current_epoch)
+        self.writer.add_scalar("KL/train", kl_loss.item(), self.current_epoch)
+        self.writer.add_scalar("Loss/train", loss.item(), self.current_epoch)
+
+        return loss
+
+    @torch.no_grad()
     def val_one_step(self, img, label):
-        # TODO
-        raise NotImplementedError
+        mse_loss = torch.zeros(1).to(self.args.device)
+        kl_loss = torch.zeros(1).to(self.args.device)
+
+        prev_frame = img[:, 0, :, :, :].clone()
+        for i in range(1, self.args.val_vi_len):
+            trans_prev_frame = self.frame_transformation(prev_frame)
+            trans_cur_frame = self.frame_transformation(img[:, i, :, :, :])
+            trans_cur_label = self.label_transformation(label[:, i, :, :, :])
+            z, mu, logvar = self.Gaussian_Predictor(trans_cur_frame, trans_cur_label)
+
+            df_out = self.Decoder_Fusion(trans_prev_frame, trans_cur_label, z)
+            prev_frame = self.Generator(df_out)
+
+            kl_loss += kl_criterion(mu, logvar, self.batch_size)
+            mse_loss += self.mse_criterion(prev_frame, img[:, i, :, :, :])
+
+        mse_loss /= self.args.val_vi_len - 1
+        kl_loss /= self.args.val_vi_len - 1
+        loss = mse_loss + self.kl_annealing.get_beta() * kl_loss
+
+        self.writer.add_scalar("MSE/val", mse_loss.item(), self.current_epoch)
+        self.writer.add_scalar("KL/val", kl_loss.item(), self.current_epoch)
+        self.writer.add_scalar("Loss/val", loss.item(), self.current_epoch)
+
+        return loss
 
     def make_gif(self, images_list, img_name):
         new_list = []
@@ -225,12 +306,22 @@ class VAE_Model(nn.Module):
         return val_loader
 
     def teacher_forcing_ratio_update(self):
-        # TODO
-        raise NotImplementedError
+        if self.tfr > 0.0:
+            if self.current_epoch >= self.tfr_sde:
+                self.tfr -= self.tfr_d_step
+                if self.tfr < 0.0:
+                    self.tfr = 0.0
+            else:
+                self.tfr = self.args.tfr
+        else:
+            self.tfr = 0.0
+        self.tfr = max(self.tfr, 0.0)
+        self.tfr = min(self.tfr, 1.0)
+        return self.tfr
 
     def tqdm_bar(self, mode, pbar, loss, lr):
         pbar.set_description(
-            f"({mode}) Epoch {self.current_epoch}, lr:{lr}", refresh=False
+            f"({mode}) Epoch {self.current_epoch}, lr:{lr:.2e}", refresh=False
         )
         pbar.set_postfix(loss=float(loss), refresh=False)
         pbar.refresh()
@@ -270,7 +361,6 @@ class VAE_Model(nn.Module):
 
 
 def main(args):
-
     os.makedirs(args.save_root, exist_ok=True)
     model = VAE_Model(args).to(args.device)
     model.load_checkpoint()
@@ -281,9 +371,17 @@ def main(args):
 
 
 if __name__ == "__main__":
+    seed = 42
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
     parser = argparse.ArgumentParser(add_help=True)
-    parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--lr", type=float, default=0.001, help="initial learning rate")
+    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument(
+        "--lr", type=float, default=0.0001, help="initial learning rate"
+    )
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
     parser.add_argument("--optim", type=str, choices=["Adam", "AdamW"], default="Adam")
     parser.add_argument("--gpu", type=int, default=1)
@@ -374,10 +472,17 @@ if __name__ == "__main__":
     )
 
     # Kl annealing stratedy arguments
-    parser.add_argument("--kl_anneal_type", type=str, default="Cyclical", help="")
+    parser.add_argument(
+        "--kl_anneal_type",
+        type=str,
+        default="Cyclical",
+        choices=["Cyclical", "Linear", "Constant"],
+        help="Type of KL annealing strategy",
+    )
     parser.add_argument("--kl_anneal_cycle", type=int, default=10, help="")
     parser.add_argument("--kl_anneal_ratio", type=float, default=1, help="")
 
     args = parser.parse_args()
 
+    logger.info(f"{args}")
     main(args)
