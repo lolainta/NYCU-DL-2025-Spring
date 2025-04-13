@@ -1,0 +1,12 @@
+\section{Introduction}
+\label{sec:intro}
+
+In this lab, we focus on implementing \textbf{Conditional Variational Autoencoder (cVAE)} for the task of \textbf{video prediction}. The goal is to generate a sequence of future video frames, conditioned on a sequence of \textit{pose images} (labels) and a \textit{starting frame}. Specifically, given an initial frame $x_1$ and a set of pose conditions $\{P_2, \ldots, P_k\}$, the model generates frames $\{x_2, \ldots, x_k\}$ that follow the specified motion.
+
+The architecture is based on a \textbf{VAE framework}, where a latent variable $z$ is used to capture the stochastic aspects of motion. A posterior network (Gaussian Predictor) generates $\mu$ and $\log \sigma^2$ from the current frame and label, from which the latent code $z$ is sampled using the \textit{reparameterization trick}. The \textbf{generator} then uses the sampled latent variable, the previous frame, and the current pose label to generate the next frame.
+
+The task is inspired by the ICCV 2019 paper \textit{``Everybody Dance Now''}~\cite{chan2019everybody}, which uses a GAN-based model for pose-to-frame generation, and the ICML 2018 paper \textit{``Stochastic Video Generation with a Learned Prior''}~\cite{denton2018stochastic}, which utilizes a VAE model augmented with temporal modules like LSTMs. While the GAN-based approach emphasizes image quality, the VAE-based model allows for \textbf{diverse and temporally consistent frame generation}, which is suitable for this task.
+
+To improve training and stability, techniques like \textbf{KL annealing} (both monotonic and cyclical) and \textbf{teacher forcing} are employed. These help in mitigating common issues in VAE training such as KL collapse and exposure bias in autoregressive generation.
+
+In this report, we detail our implementation, training strategy, and analysis of the model's performance on video prediction, measured by \textit{loss curves} and \textit{PSNR per frame}.
