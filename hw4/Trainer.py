@@ -44,11 +44,11 @@ class kl_annealing:
         self.step = current_epoch
 
         match self.anneal_type:
-            case "Constant":
+            case "constant":
                 self.L = torch.ones(args.num_epoch)
-            case "Linear":
+            case "linear":
                 self.L = torch.linspace(0, 1, args.num_epoch)
-            case "Cyclical":
+            case "cyclical":
                 self.L = self.frange_cycle_linear(
                     args.num_epoch,
                     start=0.0,
@@ -134,14 +134,14 @@ class VAE_Model(nn.Module):
                 beta = self.kl_annealing.get_beta()
                 if adapt_TeacherForcing:
                     self.tqdm_bar(
-                        f"train [TeacherForcing: ON, {self.tfr:.1f}], beta: {beta:.2f}",
+                        f"train [TF: ON, {self.tfr:.1f}], beta: {beta:.2f}",
                         pbar,
                         loss.detach().cpu(),
                         lr=self.scheduler.get_last_lr()[0],
                     )
                 else:
                     self.tqdm_bar(
-                        f"train [TeacherForcing: OFF, {self.tfr:.1f}], beta: {beta:.2f}",
+                        f"train [TF: OFF, {self.tfr:.1f}], beta: {beta:.2f}",
                         pbar,
                         loss.detach().cpu(),
                         lr=self.scheduler.get_last_lr()[0],
@@ -193,7 +193,7 @@ class VAE_Model(nn.Module):
             pred_frame = self.Generator(df_out)
 
             if torch.isnan(pred_frame).any():
-                raise ValueError("NaN in prev_frame")
+                logger.error(f"Nan in prev_frame")
 
             kl_loss += kl_criterion(mu, logvar, self.batch_size)
             mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
@@ -206,6 +206,8 @@ class VAE_Model(nn.Module):
         self.optim.zero_grad()
         loss.backward()
         self.optimizer_step()
+
+        # tqdm.write(f"MSELoss: {mse_loss.item()}, KLD: {kl_loss.item()}")
 
         self.writer.add_scalar("MSE/train", mse_loss.item(), self.current_epoch)
         self.writer.add_scalar("KL/train", kl_loss.item(), self.current_epoch)
@@ -362,6 +364,8 @@ class VAE_Model(nn.Module):
 
 def main(args):
     os.makedirs(args.save_root, exist_ok=True)
+    with open(os.path.join(args.save_root, "config.txt"), "w") as f:
+        f.write(str(args))
     model = VAE_Model(args).to(args.device)
     model.load_checkpoint()
     if args.test:
@@ -475,8 +479,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--kl_anneal_type",
         type=str,
-        default="Cyclical",
-        choices=["Cyclical", "Linear", "Constant"],
+        default="cyclical",
+        choices=["cyclical", "linear", "constant"],
         help="Type of KL annealing strategy",
     )
     parser.add_argument("--kl_anneal_cycle", type=int, default=10, help="")
