@@ -18,7 +18,7 @@ from dataloader import Dataset_Dance
 import random
 import torch.optim as optim
 
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 from math import log10
 
@@ -27,7 +27,8 @@ from loguru import logger
 
 def Generate_PSNR(imgs1, imgs2, data_range=1.0):
     """PSNR for torch tensor"""
-    mse = nn.functional.mse_loss(imgs1, imgs2)  # wrong computation for batch size > 1
+    # logger.debug(f"imgs1: {imgs1.shape}, imgs2: {imgs2.shape}") (B, C, H, W)
+    mse = torch.mean((imgs1 - imgs2) ** 2, dim=(1, 2, 3)).mean()
     psnr = 20 * log10(data_range) - 10 * torch.log10(mse)
     return psnr
 
@@ -115,13 +116,14 @@ class VAE_Model(nn.Module):
         self.val_vi_len = args.val_vi_len
         self.batch_size = args.batch_size
 
-        if writer:
-            self.writer = SummaryWriter()
+        self.writer = SummaryWriter(f"runs/{args.save_root}")
+        self.writer.add_text("args", str(args))
 
-    def forward(self, img, label):
-        pass
+        self.best_psnr = 0.0
 
     def training_stage(self):
+
+        cnt = 0
         for _ in range(self.args.num_epoch):
             train_loader = self.train_dataloader()
             adapt_TeacherForcing: bool = True if random.random() < self.tfr else False
@@ -129,25 +131,27 @@ class VAE_Model(nn.Module):
             for img, label in (pbar := tqdm(train_loader, dynamic_ncols=True)):
                 img = img.to(self.args.device)
                 label = label.to(self.args.device)
-                loss = self.training_one_step(img, label, adapt_TeacherForcing)
+                loss, (mse, kl, psnr) = self.training_one_step(
+                    img, label, adapt_TeacherForcing
+                )
+
+                self.writer.add_scalar("MSE/train-step", mse, cnt)
+                self.writer.add_scalar("KL/train-step", kl, cnt)
+                self.writer.add_scalar("PSNR/train-step", psnr, cnt)
+                cnt += 1
 
                 beta = self.kl_annealing.get_beta()
-                if adapt_TeacherForcing:
-                    self.tqdm_bar(
-                        f"train [TF: ON, {self.tfr:.1f}], beta: {beta:.2f}",
-                        pbar,
-                        loss.detach().cpu(),
-                        lr=self.scheduler.get_last_lr()[0],
-                    )
-                else:
-                    self.tqdm_bar(
-                        f"train [TF: OFF, {self.tfr:.1f}], beta: {beta:.2f}",
-                        pbar,
-                        loss.detach().cpu(),
-                        lr=self.scheduler.get_last_lr()[0],
-                    )
+                self.tqdm_bar(
+                    f"train [TF: {adapt_TeacherForcing}, {self.tfr:.1f}], beta: {beta:.2f}",
+                    pbar,
+                    loss.detach().cpu(),
+                    mse=mse,
+                    kl=kl,
+                    psnr=psnr,
+                    lr=self.scheduler.get_last_lr()[0],
+                )
 
-            if self.current_epoch % self.args.per_save == 0:
+            if (self.current_epoch + 1) % self.args.per_save == 0:
                 self.save(
                     os.path.join(
                         self.args.save_root, f"epoch={self.current_epoch}.ckpt"
@@ -168,20 +172,31 @@ class VAE_Model(nn.Module):
     @torch.no_grad()
     def eval(self):  # type: ignore
         val_loader = self.val_dataloader()
-        for img, label in (pbar := tqdm(val_loader, dynamic_ncols=True)):
-            img = img.to(self.args.device)
-            label = label.to(self.args.device)
-            loss = self.val_one_step(img, label)
-            self.tqdm_bar(
-                "val", pbar, loss.detach().cpu(), lr=self.scheduler.get_last_lr()[0]
-            )
+        assert len(val_loader) == 1, "Ønly one video in val dataloader"
 
-    def training_one_step(self, img, label, adapt_TeacherForcing: bool) -> torch.Tensor:
+        img = val_loader.dataset[0][0].unsqueeze(0).to(self.args.device)
+        label = val_loader.dataset[0][1].unsqueeze(0).to(self.args.device)
+        loss, (mse, kl, psnr) = self.val_one_step(img, label)
+
+        if psnr > self.best_psnr:
+            self.best_psnr = psnr
+            self.save(os.path.join(self.args.save_root, f"best.ckpt"))
+            logger.info(f"Best PSNR: {psnr}, epoch: {self.current_epoch}")
+
+        self.writer.add_scalar("MSE/val", mse, self.current_epoch)
+        self.writer.add_scalar("KL/val", kl, self.current_epoch)
+        self.writer.add_scalar("PSNR/val", psnr, self.current_epoch)
+        self.writer.add_scalar("Loss/val", loss, self.current_epoch)
+
+    def training_one_step(
+        self, img, label, adapt_TeacherForcing: bool
+    ) -> tuple[torch.Tensor, tuple[float, float, float]]:
         # image shape: [batch_size, video_len, channel, height, width]
         # label shape: [batch_size, video_len, channel, height, width]
 
         mse_loss = torch.zeros(1).to(self.args.device)
         kl_loss = torch.zeros(1).to(self.args.device)
+        psnr = torch.zeros(1).to(self.args.device)
 
         prev_frame = img[:, 0, :, :, :].clone()
         for i in range(1, self.args.train_vi_len):
@@ -193,55 +208,82 @@ class VAE_Model(nn.Module):
             pred_frame = self.Generator(df_out)
 
             if torch.isnan(pred_frame).any():
-                logger.error(f"Nan in prev_frame")
+                logger.warning(f"Nan in prev_frame")
+                break
 
             kl_loss += kl_criterion(mu, logvar, self.batch_size)
             mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
+            psnr += Generate_PSNR(pred_frame, img[:, i, :, :, :], data_range=1.0)
 
             prev_frame = img[:, i, :, :, :] if adapt_TeacherForcing else pred_frame
+
         mse_loss /= self.args.train_vi_len - 1
         kl_loss /= self.args.train_vi_len - 1
+        psnr /= self.args.train_vi_len - 1
         loss = mse_loss + self.kl_annealing.get_beta() * kl_loss
 
         self.optim.zero_grad()
         loss.backward()
         self.optimizer_step()
 
-        # tqdm.write(f"MSELoss: {mse_loss.item()}, KLD: {kl_loss.item()}")
-
-        self.writer.add_scalar("MSE/train", mse_loss.item(), self.current_epoch)
-        self.writer.add_scalar("KL/train", kl_loss.item(), self.current_epoch)
-        self.writer.add_scalar("Loss/train", loss.item(), self.current_epoch)
-
-        return loss
+        return loss, (mse_loss.item(), kl_loss.item(), psnr.item())
 
     @torch.no_grad()
-    def val_one_step(self, img, label):
+    def val_one_step(
+        self, img, label
+    ) -> tuple[torch.Tensor, tuple[float, float, float]]:
         mse_loss = torch.zeros(1).to(self.args.device)
         kl_loss = torch.zeros(1).to(self.args.device)
+        psnr = torch.zeros(1).to(self.args.device)
+        decoded_frames = [img[:, 0, :, :, :].clone()]
 
         prev_frame = img[:, 0, :, :, :].clone()
-        for i in range(1, self.args.val_vi_len):
+        for i in (pbar := trange(1, self.args.val_vi_len)):
             trans_prev_frame = self.frame_transformation(prev_frame)
             trans_cur_frame = self.frame_transformation(img[:, i, :, :, :])
             trans_cur_label = self.label_transformation(label[:, i, :, :, :])
             z, mu, logvar = self.Gaussian_Predictor(trans_cur_frame, trans_cur_label)
-
             df_out = self.Decoder_Fusion(trans_prev_frame, trans_cur_label, z)
-            prev_frame = self.Generator(df_out)
+            pred_frame = self.Generator(df_out)
+
+            decoded_frames.append(pred_frame)
 
             kl_loss += kl_criterion(mu, logvar, self.batch_size)
-            mse_loss += self.mse_criterion(prev_frame, img[:, i, :, :, :])
+            mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
+            psnr += Generate_PSNR(pred_frame, img[:, i, :, :, :], data_range=1.0)
+
+            prev_frame = pred_frame
+
+            self.tqdm_bar(
+                f"val [TF: False, {self.tfr:.1f}], beta: {self.kl_annealing.get_beta():.2f}",
+                pbar,
+                mse_loss.detach().cpu(),
+                mse=mse_loss,
+                kl=kl_loss,
+                psnr=psnr / (i + 1),
+                lr=self.scheduler.get_last_lr()[0],
+            )
 
         mse_loss /= self.args.val_vi_len - 1
         kl_loss /= self.args.val_vi_len - 1
+        psnr /= self.args.val_vi_len - 1
         loss = mse_loss + self.kl_annealing.get_beta() * kl_loss
+
+        decoded_frames = torch.stack(decoded_frames, dim=1)
+
+        if self.args.store_visualization:
+            # if (self.current_epoch + 1) % self.args.per_save == 0:
+            self.make_gif(
+                decoded_frames[0],
+                f"{self.args.save_root}/val_{self.current_epoch}_decoded.gif",
+            )
 
         self.writer.add_scalar("MSE/val", mse_loss.item(), self.current_epoch)
         self.writer.add_scalar("KL/val", kl_loss.item(), self.current_epoch)
+        self.writer.add_scalar("PSNR/val", psnr.item(), self.current_epoch)
         self.writer.add_scalar("Loss/val", loss.item(), self.current_epoch)
 
-        return loss
+        return loss, (mse_loss.item(), kl_loss.item(), psnr.item())
 
     def make_gif(self, images_list, img_name):
         new_list = []
@@ -321,11 +363,22 @@ class VAE_Model(nn.Module):
         self.tfr = min(self.tfr, 1.0)
         return self.tfr
 
-    def tqdm_bar(self, mode, pbar, loss, lr):
+    def tqdm_bar(
+        self,
+        mode,
+        pbar,
+        loss,
+        mse,
+        kl,
+        psnr,
+        lr,
+    ):
         pbar.set_description(
             f"({mode}) Epoch {self.current_epoch}, lr:{lr:.2e}", refresh=False
         )
-        pbar.set_postfix(loss=float(loss), refresh=False)
+        pbar.set_postfix(
+            loss=float(loss), mse=float(mse), kl=float(kl), psnr=float(psnr)
+        )
         pbar.refresh()
 
     def save(self, path):
@@ -382,10 +435,8 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     parser = argparse.ArgumentParser(add_help=True)
-    parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument(
-        "--lr", type=float, default=0.0001, help="initial learning rate"
-    )
+    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--lr", type=float, default=0.001, help="initial learning rate")
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
     parser.add_argument("--optim", type=str, choices=["Adam", "AdamW"], default="Adam")
     parser.add_argument("--gpu", type=int, default=1)
@@ -401,10 +452,10 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num_workers", type=int, default=4)
     parser.add_argument(
-        "--num_epoch", type=int, default=70, help="number of total epoch"
+        "--num_epoch", type=int, default=200, help="number of total epoch"
     )
     parser.add_argument(
-        "--per_save", type=int, default=3, help="Save checkpoint every seted epoch"
+        "--per_save", type=int, default=10, help="Save checkpoint every seted epoch"
     )
     parser.add_argument(
         "--partial",

@@ -94,7 +94,7 @@ class Test_model(VAE_Model):
         )
 
     @torch.no_grad
-    def val_one_step(self, img, label, idx=0):
+    def val_one_step(self, img, label, idx=0) -> torch.Tensor:  # type: ignore
         img = img.permute(1, 0, 2, 3, 4)  # change tensor into (seq, B, C, H, W)
         label = label.permute(1, 0, 2, 3, 4)  # change tensor into (seq, B, C, H, W)
         assert label.shape[0] == 630, "Testing pose seqence should be 630"
@@ -137,6 +137,9 @@ class Test_model(VAE_Model):
 
         self.make_gif(
             generated_frame[0], os.path.join(self.args.save_root, f"pred_seq{idx}.gif")
+        )
+        self.make_gif(
+            label_frame[0], os.path.join(self.args.save_root, f"label_seq{idx}.gif")
         )
 
         # Reshape the generated frame to (630, 3 * 64 * 32)
@@ -269,7 +272,7 @@ if __name__ == "__main__":
         help="Decay step that teacher forcing ratio adopted",
     )
     parser.add_argument(
-        "--ckpt_path", type=str, default=None, help="The path of your checkpoints"
+        "--ckpt_path", type=str, required=True, help="The path of your checkpoints"
     )
 
     # Training Strategy
@@ -288,7 +291,7 @@ if __name__ == "__main__":
     )
 
     # Kl annealing stratedy arguments
-    parser.add_argument("--kl_anneal_type", type=str, default="Cyclical", help="")
+    parser.add_argument("--kl_anneal_type", type=str, default="cyclical", help="")
     parser.add_argument("--kl_anneal_cycle", type=int, default=10, help="")
     parser.add_argument("--kl_anneal_ratio", type=float, default=1, help="")
 
