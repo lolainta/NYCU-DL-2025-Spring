@@ -128,6 +128,11 @@ class VAE_Model(nn.Module):
             train_loader = self.train_dataloader()
             adapt_TeacherForcing: bool = True if random.random() < self.tfr else False
 
+            mse_all = 0.0
+            kl_all = 0.0
+            psnr_all = 0.0
+            loss_all = 0.0
+
             for img, label in (pbar := tqdm(train_loader, dynamic_ncols=True)):
                 img = img.to(self.args.device)
                 label = label.to(self.args.device)
@@ -135,9 +140,15 @@ class VAE_Model(nn.Module):
                     img, label, adapt_TeacherForcing
                 )
 
+                mse_all += mse
+                kl_all += kl
+                psnr_all += psnr
+                loss_all += loss
+
                 self.writer.add_scalar("MSE/train-step", mse, cnt)
                 self.writer.add_scalar("KL/train-step", kl, cnt)
                 self.writer.add_scalar("PSNR/train-step", psnr, cnt)
+                self.writer.add_scalar("Loss/train-step", loss, cnt)
                 cnt += 1
 
                 beta = self.kl_annealing.get_beta()
@@ -158,12 +169,22 @@ class VAE_Model(nn.Module):
                     )
                 )
 
+            mse_all /= len(train_loader)
+            kl_all /= len(train_loader)
+            psnr_all /= len(train_loader)
+            loss_all /= len(train_loader)
+
+            self.writer.add_scalar("MSE/train", mse_all, self.current_epoch)
+            self.writer.add_scalar("KL/train", kl_all, self.current_epoch)
+            self.writer.add_scalar("PSNR/train", psnr_all, self.current_epoch)
+            self.writer.add_scalar("Loss/train", loss_all, self.current_epoch)
             self.writer.add_scalar("TFR/train", self.tfr, self.current_epoch)
             self.writer.add_scalar(
                 "Beta/train", self.kl_annealing.get_beta(), self.current_epoch
             )
 
             self.eval()
+
             self.current_epoch += 1
             self.scheduler.step()
             self.teacher_forcing_ratio_update()
@@ -209,11 +230,11 @@ class VAE_Model(nn.Module):
 
             if torch.isnan(pred_frame).any():
                 logger.warning(f"Nan in prev_frame")
-                break
-
-            kl_loss += kl_criterion(mu, logvar, self.batch_size)
-            mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
-            psnr += Generate_PSNR(pred_frame, img[:, i, :, :, :], data_range=1.0)
+                return torch.zeros(1).to(self.args.device), (0, 0, 0)
+            else:
+                kl_loss += kl_criterion(mu, logvar, self.batch_size)
+                mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
+                psnr += Generate_PSNR(pred_frame, img[:, i, :, :, :], data_range=1.0)
 
             prev_frame = img[:, i, :, :, :] if adapt_TeacherForcing else pred_frame
 
@@ -237,6 +258,8 @@ class VAE_Model(nn.Module):
         psnr = torch.zeros(1).to(self.args.device)
         decoded_frames = [img[:, 0, :, :, :].clone()]
 
+        failed = False
+
         prev_frame = img[:, 0, :, :, :].clone()
         for i in (pbar := trange(1, self.args.val_vi_len)):
             trans_prev_frame = self.frame_transformation(prev_frame)
@@ -246,11 +269,27 @@ class VAE_Model(nn.Module):
             df_out = self.Decoder_Fusion(trans_prev_frame, trans_cur_label, z)
             pred_frame = self.Generator(df_out)
 
+            if torch.isnan(pred_frame).any():
+                failed = True
+                logger.error(f"Nan in prev_frame")
+
             decoded_frames.append(pred_frame)
 
             kl_loss += kl_criterion(mu, logvar, self.batch_size)
             mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
-            psnr += Generate_PSNR(pred_frame, img[:, i, :, :, :], data_range=1.0)
+
+            psnr += (
+                cur_psnr := Generate_PSNR(
+                    pred_frame, img[:, i, :, :, :], data_range=1.0
+                )
+            )
+
+            if self.args.test:
+                self.writer.add_scalar(
+                    f"PSNR/val-step",
+                    cur_psnr,
+                    i,
+                )
 
             prev_frame = pred_frame
 
@@ -264,10 +303,16 @@ class VAE_Model(nn.Module):
                 lr=self.scheduler.get_last_lr()[0],
             )
 
-        mse_loss /= self.args.val_vi_len - 1
-        kl_loss /= self.args.val_vi_len - 1
-        psnr /= self.args.val_vi_len - 1
-        loss = mse_loss + self.kl_annealing.get_beta() * kl_loss
+        if not failed:
+            mse_loss /= self.args.val_vi_len - 1
+            kl_loss /= self.args.val_vi_len - 1
+            psnr /= self.args.val_vi_len - 1
+            loss = mse_loss + self.kl_annealing.get_beta() * kl_loss
+        else:
+            mse_loss = torch.zeros(1).to(self.args.device)
+            kl_loss = torch.zeros(1).to(self.args.device)
+            psnr = torch.zeros(1).to(self.args.device)
+            loss = torch.zeros(1).to(self.args.device)
 
         decoded_frames = torch.stack(decoded_frames, dim=1)
 
@@ -435,7 +480,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     parser = argparse.ArgumentParser(add_help=True)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--lr", type=float, default=0.001, help="initial learning rate")
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
     parser.add_argument("--optim", type=str, choices=["Adam", "AdamW"], default="Adam")
