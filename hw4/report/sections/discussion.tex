@@ -1,2 +1,73 @@
-\section{Discussion}
-\label{sec:discussion}
+\section{Analysis \& Discussion}
+
+\subsection{Teacher Forcing Ratio}
+I experimented with different initial teacher forcing ratios (\texttt{tfr}) and decay strategies. The ratio controls the probability of using the ground truth frame $x_{t-1}$ instead of the generated frame $\hat{x}_{t-1}$ during training. The configurations I tested include:
+
+\begin{itemize}
+    \item \textbf{TF1:} \texttt{tfr = 1.0}, \texttt{tfr\_sde = 0}, \texttt{tfr\_d\_step = 0.1}
+    \item \textbf{TF2:} \texttt{tfr = 0.5}, \texttt{tfr\_sde = 10}, \texttt{tfr\_d\_step = 0.05}
+    \item \textbf{TF3:} \texttt{tfr = 0.0} (no teacher forcing)
+\end{itemize}
+
+These experiments were conducted with default parameters, including a batch size of 4 and a learning rate of 0.0001.
+The first configuration used a high initial TFR of 1.0, which decayed to 0.0 over 10 epochs.
+The second configuration started with a TFR of 0.5 and start decaying after 10 epochs, reaching 0.0 after 20 epochs.
+The third configuration used no teacher forcing, meaning the model always used its own predictions as input.
+
+Figure~\ref{fig:tfr_vs_loss} shows the decay of the TFR and its relationship to the training loss. I observed that high initial TFR led to faster convergence early on, but sometimes caused the model to overfit to teacher inputs. In contrast, training with \texttt{tfr = 0.0} converged more slowly initially, but achieved better consistency in frame generation.
+
+\begin{figure}[H]
+    \centering
+    \input{./figures/tfr.tex}
+    \caption{Teacher Forcing Ratio and Corresponding Loss}
+    \label{fig:tfr_vs_loss}
+\end{figure}
+
+\subsection{Loss Curve Under Different KL Annealing Strategies}
+
+I compared three KL annealing strategies:
+
+\begin{itemize}
+    \item \textbf{KL1: Cyclical}: Repeated ramp-up and reset schedule
+    \item \textbf{KL2: Monotonic}: Linearly increasing $\beta$
+    \item \textbf{KL3: Constant}: No annealing; $\beta = 1$ throughout
+    \item \textbf{KL4: Cyclical R0.5}: Cyclical with $\texttt{kl\_anneal\_ratio} = 0.5$
+\end{itemize}
+
+These experiments were conducted with a batch size of 4 and a learning rate of $0.0001$.
+The parameters for the cyclical schedule were $\texttt{kl\_anneal\_ratio} = 1$ and $\texttt{kl\_anneal\_cycle} = 10$.
+And the parameters for cyclical R0.5 schedule were $\texttt{kl\_anneal\_ratio} = 0.5$ and $\texttt{kl\_anneal\_cycle} = 10$.
+
+
+Figure~\ref{fig:loss_kl_modes} shows the training loss curves. As expected, the \texttt{monotonic} and \texttt{cyclical} schedules provided more stable training in the early epochs. Without KL annealing, the KL term dominated early, leading to unstable gradients and degraded frame quality. Among the three, the \texttt{cyclical} method—based on Fu et al.~\cite{fu_cyclical_2019_naacl}—produced the best overall convergence and avoided KL collapse.
+
+\begin{figure}[H]
+    \centering
+    \input{./figures/kl.tex}
+    \caption{Training Loss with Different KL Annealing Strategies}
+    \label{fig:loss_kl_modes}
+\end{figure}
+
+\subsection{PSNR-per-Frame in Validation Set}
+
+To evaluate the quality of the generated frames, I computed the PSNR between each predicted frame and its ground truth counterpart on the validation set. Figure~\ref{fig:psnr_curve} shows the per-frame PSNR for the different KL annealing strategies.
+
+\begin{figure}[H]
+    \centering
+    \input{./figures/psnr.tex}
+    \label{fig:psnr_curve}
+\end{figure}
+
+The results showed that PSNR typically remained stable in the early frames but dropped significantly after around frame 400. The model trained with a monotonic KL schedule achieved the highest average PSNR in early frames, while the cyclical schedule produced more stable long-term quality.
+
+\subsection{Other Training Strategy Analysis (Bonus)}
+
+In addition to the main training configurations, I explored several auxiliary strategies:
+
+\begin{itemize}
+    \item \textbf{Data Augmentation:} I applied Gaussian blur and normalization to the input frames. However, applying augmentation only to images (not labels) resulted in a distribution mismatch that degraded performance.
+    \item \textbf{Optimizers:} I compared \texttt{Adam} and \texttt{AdamW}. The latter improved regularization and resulted in lower validation loss.
+    \item \textbf{Schedulers:} I tested \texttt{MultiStepLR} and \texttt{CosineAnnealing}, but found that the default schedule provided the most consistent results.
+\end{itemize}
+
+Overall, the best results were achieved using the \texttt{AdamW} optimizer, cyclical KL annealing, and moderate teacher forcing decay.

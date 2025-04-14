@@ -1,0 +1,76 @@
+\begin{tikzpicture}
+    \begin{groupplot}[
+            group style={
+                    group size=1 by 2,
+                    vertical sep=2.5cm,
+                },
+            width=0.98\linewidth,
+            height=0.3\linewidth,
+            xlabel={Epoch},
+            grid=major,
+            legend columns=1,
+            legend style={
+                    anchor=north,
+                    column sep=1ex,
+                    legend cell align=left,
+                },
+            legend to name=tfrlegend,
+        ]
+
+        % --- Top: TFR vs Loss ---
+        \nextgroupplot[
+            ylabel={TFR},
+            title={Teacher Forcing Ratio (TFR)},
+            tick align=outside,
+        ]
+        \addplot[mark=-,orange] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/tfr1_tfr.csv};
+        \addlegendentry{TF1: \texttt{tfr = 1.0, tfr\_sde = 0, tfr\_d\_step = 0.1}}
+        \addplot[mark=-,violet] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/tfr2_tfr.csv};
+        \addlegendentry{TF2: \texttt{tfr = 0.5, tfr\_sde = 10, tfr\_d\_step = 0.05}}
+        \addplot[mark=-,cyan] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/tfr3_tfr.csv};
+        \addlegendentry{TF3: \texttt{tfr = 0}}
+
+        % --- Bottom: Loss ---
+        \nextgroupplot[
+            ylabel={Loss},
+            title={Training/Validation Loss},
+            ymode=log,
+            ymax=0.1,
+            ymin=0.0001,
+            tick align=outside,
+        ]
+        \addplot[mark=-,orange] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/tfr1_loss.csv};
+        \addlegendentry{TF1: \texttt{tfr = 1.0, tfr\_sde = 0, tfr\_d\_step = 0.1}}
+        \addplot[mark=-,violet] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/tfr2_loss.csv};
+        \addlegendentry{TF2: \texttt{tfr = 0.5, tfr\_sde = 10, tfr\_d\_step = 0.05}}
+        \addplot[mark=-,cyan] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/tfr3_loss.csv};
+        \addlegendentry{TF3: \texttt{tfr = 0}}
+
+    \end{groupplot}
+\end{tikzpicture}
+\centering
+\ref*{tfrlegend}
