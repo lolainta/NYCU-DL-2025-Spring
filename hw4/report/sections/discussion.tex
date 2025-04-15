@@ -65,9 +65,14 @@ The results showed that PSNR typically remained stable in the early frames but d
 In addition to the main training configurations, I explored several auxiliary strategies:
 
 \begin{itemize}
-    \item \textbf{Data Augmentation:} I applied RandomResizeCrop and RandomHorizontalFlip to both images and labels. This improved the model's robustness and generalization.
-    \item \textbf{Optimizers:} I compared \texttt{Adam} and \texttt{AdamW}. The latter improved regularization and resulted in lower validation loss.
-    \item \textbf{Schedulers:} I tested \texttt{MultiStepLR} and \texttt{CosineAnnealing}, but found that the default schedule provided the most consistent results.
+    \item \textbf{Data Augmentation:} I applied RandomResizeCrop and RandomHorizontalFlip to both images and labels among all the images in the dataset. This helped to improve the model's robustness and generalization. The implementation are shown bellow:
+          \inputminted[firstline=57, highlightlines={71,72,74-76}]{python}{../dataloader.py}
+          \inputminted[firstline=368,lastline=394,highlightlines={369-375}]{python}{../Trainer.py}
+    \item \textbf{Optimizers:} I compared \texttt{Adam} and \texttt{AdamW}. The latter improved regularization and resulted in lower validation loss. The implementation is shown below:
+    \item \textbf{Schedulers:} I tested \texttt{MultiStepLR} and \texttt{CosineAnnealing}.
+          \inputminted[firstline=102, lastline=122, highlightlines={109-120}]{python}{../Trainer.py}
 \end{itemize}
 
-Overall, the best results were achieved using the \texttt{AdamW} optimizer, cyclical KL annealing, and moderate teacher forcing decay.
+Overall, the best results were achieved using the \texttt{AdamW} optimizer, cyclical KL annealing, and moderate teacher forcing rate (about 0.5).
+Since the experiments were too numerous to cover in detail, I focused on the most significant findings. The data augmentation and the choice of optimizer and scheduler played a crucial role in improving the model's performance. The cyclical KL annealing strategy helped to stabilize training and prevent KL collapse, while the moderate teacher forcing rate allowed for a balance between using ground truth and generated frames during training.
+The combination of these strategies led to improved convergence and frame generation quality.

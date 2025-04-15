@@ -368,8 +368,8 @@ class VAE_Model(nn.Module):
     def train_dataloader(self):
         transform = v2.Compose(
             [
-                # v2.RandomResizedCrop((self.args.frame_H, self.args.frame_W)),
-                v2.Resize((self.args.frame_H, self.args.frame_W)),
+                v2.RandomResizedCrop((self.args.frame_H, self.args.frame_W)),
+                # v2.Resize((self.args.frame_H, self.args.frame_W)),
                 v2.RandomHorizontalFlip(p=0.5),
             ]
         )

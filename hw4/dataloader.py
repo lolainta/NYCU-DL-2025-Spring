@@ -74,6 +74,4 @@ class Dataset_Dance(torchData):
         transformed = self.transform(*imgs, *labels)
         imgs = transformed[: self.video_len]
         labels = transformed[self.video_len :]
-        imgs = stack(imgs)
-        labels = stack(labels)
-        return imgs, labels
+        return stack(imgs), stack(labels)
