@@ -2,6 +2,7 @@ import os
 from glob import glob
 import torch
 from torch import stack
+from torchvision.transforms import v2
 from torch.utils.data import Dataset as torchData
 
 from torchvision.datasets.folder import default_loader as imgloader
@@ -43,12 +44,18 @@ class Dataset_Dance(torchData):
         self.partial = partial
         self.video_len = video_len
 
+        self.to_tensor = v2.Compose(
+            [
+                v2.ToImage(),
+                v2.ToDtype(torch.float32, scale=True),
+            ]
+        )
+
     def __len__(self):
         return int(len(self.img_folder) * self.partial) // self.video_len
 
     def __getitem__(self, index):
         path = self.img_folder[index]
-
         imgs = []
         labels = []
         for i in range(self.video_len):
@@ -57,7 +64,16 @@ class Dataset_Dance(torchData):
 
             img_name = self.img_folder[(index * self.video_len) + i]
             label_name = "/".join(label_list)
+            img, label = imgloader(img_name), imgloader(label_name)
+            img = v2.functional.to_image(img)
+            label = v2.functional.to_image(label)
 
-            imgs.append(self.transform(imgloader(img_name)))
-            labels.append(self.transform(imgloader(label_name)))
-        return stack(imgs), stack(labels)
+            imgs.append(self.to_tensor(img))
+            labels.append(self.to_tensor(label))
+
+        transformed = self.transform(*imgs, *labels)
+        imgs = transformed[: self.video_len]
+        labels = transformed[self.video_len :]
+        imgs = stack(imgs)
+        labels = stack(labels)
+        return imgs, labels

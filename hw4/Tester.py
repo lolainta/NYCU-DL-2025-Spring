@@ -3,7 +3,7 @@ import argparse
 import numpy as np
 import random
 import torch
-from torchvision import transforms
+from torchvision.transforms import v2
 from tqdm import tqdm
 from torch import stack
 import glob
@@ -150,7 +150,7 @@ class Test_model(VAE_Model):
     def make_gif(self, images_list, img_name):
         new_list = []
         for img in images_list:
-            new_list.append(transforms.ToPILImage()(img))
+            new_list.append(v2.ToPILImage()(img))
 
         new_list[0].save(
             img_name,
@@ -162,10 +162,11 @@ class Test_model(VAE_Model):
         )
 
     def val_dataloader(self):
-        transform = transforms.Compose(
+        transform = v2.Compose(
             [
-                transforms.Resize((self.args.frame_H, self.args.frame_W)),
-                transforms.ToTensor(),
+                v2.Resize((self.args.frame_H, self.args.frame_W)),
+                v2.ToImage(),
+                v2.ToDtype(torch.float32, scale=True),
             ]
         )
         dataset = Dataset_Dance(

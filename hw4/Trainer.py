@@ -2,7 +2,7 @@ import os
 import argparse
 import torch
 import torch.nn as nn
-from torchvision import transforms
+from torchvision.transforms import v2
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 
@@ -52,7 +52,7 @@ class kl_annealing:
             case "cyclical":
                 self.L = self.frange_cycle_linear(
                     args.num_epoch,
-                    start=0.0,
+                    start=1e-12,
                     stop=1.0,
                     n_cycle=args.kl_anneal_cycle,
                     ratio=args.kl_anneal_ratio,
@@ -99,10 +99,27 @@ class VAE_Model(nn.Module):
         # Generative model
         self.Generator = Generator(input_nc=args.D_out_dim, output_nc=3)
 
-        self.optim = optim.Adam(self.parameters(), lr=self.args.lr)
-        self.scheduler = optim.lr_scheduler.MultiStepLR(
-            self.optim, milestones=[2, 5], gamma=0.1
-        )
+        match self.args.optim:
+            case "Adam":
+                self.optim = optim.Adam(self.parameters(), lr=self.args.lr)
+                self.scheduler = optim.lr_scheduler.MultiStepLR(
+                    self.optim, milestones=[2, 5], gamma=0.1
+                )
+            case "AdamW":
+                self.optim = optim.AdamW(
+                    self.parameters(),
+                    lr=self.args.lr,
+                    betas=(0.9, 0.999),
+                    eps=1e-8,
+                    weight_decay=0.01,
+                )
+                self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
+                    self.optim,
+                    T_max=self.args.num_epoch,
+                    eta_min=0,
+                )
+            case _:
+                raise ValueError(f"Unknown optimizer: {self.args.optim}")
         self.kl_annealing = kl_annealing(args, current_epoch=0)
         self.mse_criterion = nn.MSELoss()
         self.current_epoch = 0
@@ -122,11 +139,9 @@ class VAE_Model(nn.Module):
         self.best_psnr = 0.0
 
     def training_stage(self):
-
         cnt = 0
         for _ in range(self.args.num_epoch):
             train_loader = self.train_dataloader()
-            adapt_TeacherForcing: bool = True if random.random() < self.tfr else False
 
             mse_all = 0.0
             kl_all = 0.0
@@ -134,6 +149,9 @@ class VAE_Model(nn.Module):
             loss_all = 0.0
 
             for img, label in (pbar := tqdm(train_loader, dynamic_ncols=True)):
+                adapt_TeacherForcing: bool = (
+                    True if random.random() < self.tfr else False
+                )
                 img = img.to(self.args.device)
                 label = label.to(self.args.device)
                 loss, (mse, kl, psnr) = self.training_one_step(
@@ -153,7 +171,7 @@ class VAE_Model(nn.Module):
 
                 beta = self.kl_annealing.get_beta()
                 self.tqdm_bar(
-                    f"train [TF: {adapt_TeacherForcing}, {self.tfr:.1f}], beta: {beta:.2f}",
+                    f"train [TF: {adapt_TeacherForcing}, {self.tfr:.2f}], beta: {beta:.2f}",
                     pbar,
                     loss.detach().cpu(),
                     mse=mse,
@@ -228,13 +246,9 @@ class VAE_Model(nn.Module):
             df_out = self.Decoder_Fusion(trans_prev_frame, trans_cur_label, z)
             pred_frame = self.Generator(df_out)
 
-            if torch.isnan(pred_frame).any():
-                logger.warning(f"Nan in prev_frame")
-                return torch.zeros(1).to(self.args.device), (0, 0, 0)
-            else:
-                kl_loss += kl_criterion(mu, logvar, self.batch_size)
-                mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
-                psnr += Generate_PSNR(pred_frame, img[:, i, :, :, :], data_range=1.0)
+            kl_loss += kl_criterion(mu, logvar, self.batch_size)
+            mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
+            psnr += Generate_PSNR(pred_frame, img[:, i, :, :, :], data_range=1.0)
 
             prev_frame = img[:, i, :, :, :] if adapt_TeacherForcing else pred_frame
 
@@ -263,19 +277,25 @@ class VAE_Model(nn.Module):
         prev_frame = img[:, 0, :, :, :].clone()
         for i in (pbar := trange(1, self.args.val_vi_len)):
             trans_prev_frame = self.frame_transformation(prev_frame)
-            trans_cur_frame = self.frame_transformation(img[:, i, :, :, :])
             trans_cur_label = self.label_transformation(label[:, i, :, :, :])
-            z, mu, logvar = self.Gaussian_Predictor(trans_cur_frame, trans_cur_label)
+
+            z = torch.randn(
+                (1, self.args.N_dim, self.args.frame_H, self.args.frame_W)
+            ).to(self.args.device)
             df_out = self.Decoder_Fusion(trans_prev_frame, trans_cur_label, z)
             pred_frame = self.Generator(df_out)
 
             if torch.isnan(pred_frame).any():
                 failed = True
-                logger.error(f"Nan in prev_frame")
+                break
 
             decoded_frames.append(pred_frame)
 
+            # KL loss
+            trans_cur_frame = self.frame_transformation(img[:, i, :, :, :])
+            z_gt, mu, logvar = self.Gaussian_Predictor(trans_cur_frame, trans_cur_label)
             kl_loss += kl_criterion(mu, logvar, self.batch_size)
+
             mse_loss += self.mse_criterion(pred_frame, img[:, i, :, :, :])
 
             psnr += (
@@ -284,17 +304,17 @@ class VAE_Model(nn.Module):
                 )
             )
 
-            if self.args.test:
-                self.writer.add_scalar(
-                    f"PSNR/val-step",
-                    cur_psnr,
-                    i,
-                )
+            # if self.args.test:
+            self.writer.add_scalar(
+                f"PSNR/val-step",
+                cur_psnr,
+                i,
+            )
 
             prev_frame = pred_frame
 
             self.tqdm_bar(
-                f"val [TF: False, {self.tfr:.1f}], beta: {self.kl_annealing.get_beta():.2f}",
+                f"val [TF: False, {self.tfr:.2f}], beta: {self.kl_annealing.get_beta():.2f}",
                 pbar,
                 mse_loss.detach().cpu(),
                 mse=mse_loss,
@@ -309,6 +329,7 @@ class VAE_Model(nn.Module):
             psnr /= self.args.val_vi_len - 1
             loss = mse_loss + self.kl_annealing.get_beta() * kl_loss
         else:
+            logger.warning("NaN detected in the prediction, skipping this video.")
             mse_loss = torch.zeros(1).to(self.args.device)
             kl_loss = torch.zeros(1).to(self.args.device)
             psnr = torch.zeros(1).to(self.args.device)
@@ -333,7 +354,7 @@ class VAE_Model(nn.Module):
     def make_gif(self, images_list, img_name):
         new_list = []
         for img in images_list:
-            new_list.append(transforms.ToPILImage()(img))
+            new_list.append(v2.ToPILImage()(img))
 
         new_list[0].save(
             img_name,
@@ -345,10 +366,11 @@ class VAE_Model(nn.Module):
         )
 
     def train_dataloader(self):
-        transform = transforms.Compose(
+        transform = v2.Compose(
             [
-                transforms.Resize((self.args.frame_H, self.args.frame_W)),
-                transforms.ToTensor(),
+                # v2.RandomResizedCrop((self.args.frame_H, self.args.frame_W)),
+                v2.Resize((self.args.frame_H, self.args.frame_W)),
+                v2.RandomHorizontalFlip(p=0.5),
             ]
         )
 
@@ -372,10 +394,9 @@ class VAE_Model(nn.Module):
         return train_loader
 
     def val_dataloader(self):
-        transform = transforms.Compose(
+        transform = v2.Compose(
             [
-                transforms.Resize((self.args.frame_H, self.args.frame_W)),
-                transforms.ToTensor(),
+                v2.Resize((self.args.frame_H, self.args.frame_W)),
             ]
         )
         dataset = Dataset_Dance(
@@ -481,9 +502,11 @@ if __name__ == "__main__":
     torch.backends.cudnn.benchmark = False
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--lr", type=float, default=0.001, help="initial learning rate")
+    parser.add_argument(
+        "--lr", type=float, default=0.0001, help="initial learning rate"
+    )
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
-    parser.add_argument("--optim", type=str, choices=["Adam", "AdamW"], default="Adam")
+    parser.add_argument("--optim", type=str, choices=["Adam", "AdamW"], default="AdamW")
     parser.add_argument("--gpu", type=int, default=1)
     parser.add_argument("--test", action="store_true")
     parser.add_argument(
@@ -579,7 +602,7 @@ if __name__ == "__main__":
         choices=["cyclical", "linear", "constant"],
         help="Type of KL annealing strategy",
     )
-    parser.add_argument("--kl_anneal_cycle", type=int, default=10, help="")
+    parser.add_argument("--kl_anneal_cycle", type=int, default=20, help="")
     parser.add_argument("--kl_anneal_ratio", type=float, default=1, help="")
 
     args = parser.parse_args()

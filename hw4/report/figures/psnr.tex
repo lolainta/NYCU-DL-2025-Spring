@@ -32,6 +32,12 @@
                 y=Value
             ]{../csvs/tfr2_psnr.csv};
         \addlegendentry{TFR2}
+        \addplot[pink] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/tfr3_psnr.csv};
+        \addlegendentry{TFR3}
         \addplot[cyan] table [
                 col sep=comma,
                 x=Step,
@@ -60,11 +66,11 @@
 \end{tikzpicture}
 \ref*{psnrlegend}
 \caption{PSNR per Frame in Validation Set.
-    (a.) TFR1 is the configuration with \texttt{tfr = 1.0, tfr\_sde = 0, tfr\_d\_step = 0.1}, it has 28.97 dB average PSNR.
-    (b.) TFR2 is the configuration with \texttt{tfr = 0.5, tfr\_sde = 10, tfr\_d\_step = 0.05}, it has 36.56(?) dB average PSNR.
-    (c.) TFR3 is the configuration with \texttt{tfr = 0.0}, it has XXX dB average PSNR.
-    (d.) KL1 is the configuration with cyclical KL schedule, it has XXX dB average PSNR.
-    (e.) KL2 is the configuration with linear KL schedule, it has 27.95 dB average PSNR.
-    (f.) KL3 is the configuration with constant KL schedule, it has 30.83 dB average PSNR.
-    (g.) KL4 is the configuration with cyclical KL schedule with \texttt{kl\_anneal\_ratio = 0.5}, it has XXX dB average PSNR.
+    (a.) TFR1 is the configuration with \texttt{tfr = 1.0, tfr\_sde = 0, tfr\_d\_step = 0.1}, it has 28.10 dB average PSNR.
+    (b.) TFR2 is the configuration with \texttt{tfr = 0.5, tfr\_sde = 10, tfr\_d\_step = 0.05}, it has 26.15 dB average PSNR.
+    (c.) TFR3 is the configuration with \texttt{tfr = 0.0}, it has 33.83 dB average PSNR.
+    (d.) KL1 is the configuration with cyclical KL schedule, it has 27.85 dB average PSNR.
+    (e.) KL2 is the configuration with linear KL schedule, it has 25.48 dB average PSNR.
+    (f.) KL3 is the configuration with constant KL schedule, it has 24.95 dB average PSNR.
+    (g.) KL4 is the configuration with cyclical KL schedule with \texttt{kl\_anneal\_ratio = 0.5}, it has 24.65 dB average PSNR.
 }

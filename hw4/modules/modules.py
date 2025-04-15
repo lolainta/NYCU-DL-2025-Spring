@@ -2,8 +2,6 @@ import torch.nn as nn
 import torch
 from .layers import DepthConvBlock, ResidualBlock
 
-from loguru import logger
-
 
 __all__ = [
     "Generator",
@@ -26,6 +24,7 @@ class Generator(nn.Sequential):
             ResidualBlock(input_nc // 4, input_nc // 8),
             DepthConvBlock(input_nc // 8, input_nc // 8),
             nn.Conv2d(input_nc // 8, output_nc, 1),
+            # nn.Tanh(),
         )
 
     def forward(self, input):

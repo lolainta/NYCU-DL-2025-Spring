@@ -65,7 +65,7 @@ The results showed that PSNR typically remained stable in the early frames but d
 In addition to the main training configurations, I explored several auxiliary strategies:
 
 \begin{itemize}
-    \item \textbf{Data Augmentation:} I applied Gaussian blur and normalization to the input frames. However, applying augmentation only to images (not labels) resulted in a distribution mismatch that degraded performance.
+    \item \textbf{Data Augmentation:} I applied RandomResizeCrop and RandomHorizontalFlip to both images and labels. This improved the model's robustness and generalization.
     \item \textbf{Optimizers:} I compared \texttt{Adam} and \texttt{AdamW}. The latter improved regularization and resulted in lower validation loss.
     \item \textbf{Schedulers:} I tested \texttt{MultiStepLR} and \texttt{CosineAnnealing}, but found that the default schedule provided the most consistent results.
 \end{itemize}
