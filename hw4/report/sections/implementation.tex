@@ -1,14 +1,6 @@
 \section{Implementation Details}
 \label{sec:implementation}
 
-
-\subsection{KL Annealing}
-\label{sec:kl_annealing}
-\cite{fu_cyclical_2019_naacl}
-
-
-\section{Implementation Details}
-
 \subsection{Training and Testing Protocol}
 
 During training, each sample consists of a sequence of $k$ frames $\{x_1, x_2, \ldots, x_k\}$ and corresponding pose labels $\{P_1, P_2, \ldots, P_k\}$. The first frame $x_1$ is used as the starting point to predict the following $k-1$ frames. For each time step $t$, the Gaussian predictor takes $(x_t, P_t)$ as input and outputs the parameters $(\mu_t, \log \sigma^2_t)$ of a Gaussian distribution. A latent variable $z_t$ is then sampled using the reparameterization trick.
@@ -17,10 +9,8 @@ The decoder fuses the latent code $z_t$, the previous frame $x_{t-1}$ (or the pr
 
 Teacher forcing is applied conditionally based on a decaying teacher forcing ratio (TFR). At inference time, the model uses $z_t \sim \mathcal{N}(0, I)$ instead of using the posterior predictor, and the previously generated frame is recursively fed to the generator.
 
-% \begin{minted}[fontsize=\small, linenos]{python}
-\inputminted[firstline=124, lastline=132, highlightlines={127}]{python}{../Trainer.py}
-\inputminted[firstline=179, lastline=216, highlightlines={191-193, 201}]{python}{../Trainer.py}
-% \end{minted}
+\inputminted[firstline=230, lastline=264, highlightlines={127}]{python}{../Trainer.py}
+\inputminted[firstline=141, lastline=159, highlightlines={152-154,157-159}]{python}{../Trainer.py}
 
 \subsection{Reparameterization Trick}
 
@@ -30,15 +20,13 @@ To allow backpropagation through the stochastic latent variable, the reparameter
 \]
 The log variance is used during training for numerical stability. Below is the implementation:
 
-% \begin{minted}[fontsize=\small, linenos]{python}
-\inputminted[firstline=65, lastline=89, highlightlines={77-81}]{python}{../modules/modules.py}
-% \end{minted}
+\inputminted[firstline=64, lastline=88, highlightlines={76-80}]{python}{../modules/modules.py}
 
 \subsection{Teacher Forcing Strategy}
 
 Teacher forcing is applied by choosing whether to use the ground truth frame $x_{t-1}$ or the generated frame $\hat{x}_{t-1}$ as the next input, based on a probabilistic threshold set by TFR. The ratio starts high and decays over epochs.
 
-\inputminted[firstline=310, lastline=322]{python}{../Trainer.py}
+\inputminted[firstline=418, lastline=430]{python}{../Trainer.py}
 
 \subsection{KL Annealing Strategy}
 
@@ -51,4 +39,4 @@ KL annealing is used to gradually introduce the KL divergence loss term by multi
 
 This strategy helps to prevent KL collapse and stabilize training by allowing the model to learn useful latent codes before regularizing them. Our implementation is based on the example provided by Fu et al.~\cite{fu_cyclical_2019_naacl}, who introduced the cyclical annealing schedule to mitigate the vanishing KL problem in variational models.
 
-\inputminted[firstline=41, lastline=78]{python}{../Trainer.py}
+\inputminted[firstline=42, lastline=79]{python}{../Trainer.py}
