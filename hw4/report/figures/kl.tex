@@ -1,0 +1,87 @@
+\begin{tikzpicture}
+    \begin{groupplot}[
+            group style={
+                    group size=1 by 2,
+                    vertical sep=2.5cm,
+                },
+            width=0.98\linewidth,
+            height=0.3\linewidth,
+            xlabel={Epoch},
+            grid=major,
+            legend columns=5,
+            legend style={
+                    anchor=north,
+                    column sep=1ex,
+                    legend cell align=left,
+                },
+            legend to name=kllegend,
+        ]
+
+        % --- Top: KL Annealing Schedule ---
+        \nextgroupplot[
+            ylabel={Beta},
+            title={KL Annealing Schedule},
+            tick align=outside,
+        ]
+        \addplot[mark=-,cyan] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl1_beta.csv};
+        \addlegendentry{KL1: Cyclical}
+        \addplot[mark=-,orange] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl2_beta.csv};
+        \addlegendentry{KL2: Monotonic}
+        \addplot[mark=-,violet] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl3_beta.csv};
+        \addlegendentry{KL3: Constant}
+        \addplot[mark=-,purple] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl4_beta.csv};
+        \addlegendentry{KL4: Cyclical R0.5}
+
+        % --- Bottom: Loss ---
+        \nextgroupplot[
+            ylabel={Loss},
+            title={Training/Validation Loss},
+            ymode=log,
+            ymax=0.004,
+            ymin=0.0002,
+            tick align=outside,
+        ]
+        \addplot[mark=-,cyan] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl1_loss.csv};
+        \addlegendentry{KL1: Cyclical}
+        \addplot[mark=-,orange] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl2_loss.csv};
+        \addlegendentry{KL2: Monotonic}
+        \addplot[mark=-,violet] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl3_loss.csv};
+        \addlegendentry{KL3: Constant}
+        \addplot[mark=-,purple] table [
+                col sep=comma,
+                x=Step,
+                y=Value
+            ]{../csvs/kl4_loss.csv};
+        \addlegendentry{KL4: Cyclical R0.5}
+    \end{groupplot}
+\end{tikzpicture}
+\centering
+\ref*{kllegend}
