@@ -37,9 +37,11 @@ class Trainer:
         self.env_count = 0
         self.best_reward = 0  # Initilized to 0 for CartPole and to -21 for Pong
 
-        # self.max_episode_steps = args.max_episode_steps
         self.target_update_frequency = args.target_update_frequency
         self.train_per_step = args.train_per_step
+
+        self.eval_episodes = args.eval_episodes
+        self.eval_max_cnt = 0
 
     def run(self, episodes=1000):
         with Progress(
@@ -52,8 +54,10 @@ class Trainer:
             task = progress.add_task("[cyan]Training...", total=episodes)
             for ep in range(episodes):
                 self.episode = ep
+
                 if self.epsilon > self.epsilon_min:
                     self.epsilon *= self.epsilon_decay
+
                 self.train()
 
                 if ep % (episodes // 20) == 0:
@@ -62,7 +66,11 @@ class Trainer:
                     logger.info(f"Saved model checkpoint to {model_path}")
 
                 if ep % (episodes // 100) == 0:
-                    eval_reward = self.evaluate()
+                    eval_reward = 0
+                    for _ in range(self.eval_episodes):
+                        eval_reward += self.evaluate()
+                    eval_reward /= self.eval_episodes
+                    logger.info(f"Episode {ep} - Eval Reward: {eval_reward:.2f}")
                     if eval_reward > self.best_reward:
                         self.best_reward = eval_reward
                         model_path = os.path.join(self.save_dir, "best_model.pt")
@@ -70,9 +78,6 @@ class Trainer:
                         logger.info(
                             f"Saved new best model to {model_path} with reward {eval_reward}"
                         )
-                    logger.info(
-                        f"[TrueEval] Ep: {ep} Eval Reward: {eval_reward:.2f} SC: {self.env_count}"
-                    )
                     wandb.log(
                         {
                             "Episode": ep,
@@ -83,7 +88,7 @@ class Trainer:
                 progress.update(task, advance=1)
 
     def train(self):
-        obs, _ = self.env.reset()
+        obs, _ = self.env.reset(seed=random.randint(0, 10000))
         state = self.preprocessor.reset(obs)
 
         done = False
@@ -119,7 +124,7 @@ class Trainer:
         )
 
     def evaluate(self):
-        obs, _ = self.env.reset()
+        obs, _ = self.env.reset(seed=random.randint(0, 10000))
         state = self.preprocessor.reset(obs)
 
         done = False
@@ -147,13 +152,15 @@ if __name__ == "__main__":
     parser.add_argument("--epsilon-decay", type=float, default=0.9999)
     parser.add_argument("--epsilon-min", type=float, default=0.05)
     parser.add_argument("--target-update-frequency", type=int, default=100)
-    # parser.add_argument("--max-episode-steps", type=int, default=10000)
     parser.add_argument("--train-per-step", type=int, default=4)
     parser.add_argument(
         "--log-level",
         type=str,
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+    )
+    parser.add_argument(
+        "--eval-episodes", type=int, default=50, help="Number of eval episodes"
     )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

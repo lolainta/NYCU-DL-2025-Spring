@@ -135,7 +135,6 @@ class DQNAgent:
             next_q_values = self.target_net(next_states).max(1)[0]
             target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
         q_values = self.q_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        # loss = nn.SmoothL1Loss()(q_values, target_q_values)
         loss = nn.MSELoss()(q_values, target_q_values)
         self.optimizer.zero_grad()
         loss.backward()
