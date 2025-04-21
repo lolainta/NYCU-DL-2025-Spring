@@ -86,18 +86,22 @@ class DQNAgent:
 
         self.q_net = DQN(self.num_actions).to(self.device)
         self.q_net.apply(init_weights)
-        self.target_net = DQN(self.num_actions).to(self.device)
-        self.target_net.load_state_dict(self.q_net.state_dict())
-        self.target_net.eval()
-        self.optimizer = optim.Adam(self.q_net.parameters(), lr=args.lr)
-
-        self.batch_size = args.batch_size
-        self.gamma = args.discount_factor
 
         self.save_dir = args.save_dir
         os.makedirs(self.save_dir, exist_ok=True)
 
+    def train(self, args):
+        self.batch_size = args.batch_size
+        self.gamma = args.discount_factor
         self.memory = deque(maxlen=args.memory_size)
+        self.epsilon = args.epsilon_start
+        self.epsilon_decay = args.epsilon_decay
+        self.epsilon_min = args.epsilon_min
+
+        self.target_net = DQN(self.num_actions).to(self.device)
+        self.target_net.load_state_dict(self.q_net.state_dict())
+        self.target_net.eval()
+        self.optimizer = optim.Adam(self.q_net.parameters(), lr=args.lr)
 
     def select_action(self, state, epsilon):
         if random.random() < epsilon:
@@ -111,7 +115,7 @@ class DQNAgent:
         self.q_net.train()
         return q_values.argmax().item()
 
-    def train(self):
+    def learn(self):
         if len(self.memory) < self.batch_size:
             return
 

@@ -6,8 +6,6 @@ from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNComple
 import os
 import torch
 import gymnasium as gym
-import numpy as np
-import random
 
 from dqn import DQNAgent
 from atari import AtariPreprocessor
@@ -16,7 +14,7 @@ from atari import AtariPreprocessor
 console = Console()
 
 
-class Trainer:
+class Tester:
     def __init__(self, args) -> None:
         self.save_dir = args.save_dir
         self.env = gym.make("CartPole-v1", render_mode="rgb_array")
@@ -26,20 +24,17 @@ class Trainer:
         logger.info("Using device:", self.device)
 
         self.agent = DQNAgent(args=args)
-        self.agent.train(args)
-        self.preprocessor = AtariPreprocessor()
+        self.agent.q_net.load_state_dict(
+            torch.load(args.model_path, map_location=self.device)
+        )
+        self.agent.q_net.to(self.device)
+        self.agent.q_net.eval()
 
-        self.epsilon = args.epsilon_start
-        self.epsilon_decay = args.epsilon_decay
-        self.epsilon_min = args.epsilon_min
+        self.preprocessor = AtariPreprocessor()
 
         self.episode = 0
         self.env_count = 0
         self.best_reward = 0  # Initilized to 0 for CartPole and to -21 for Pong
-
-        # self.max_episode_steps = args.max_episode_steps
-        self.target_update_frequency = args.target_update_frequency
-        self.train_per_step = args.train_per_step
 
     def run(self, episodes=1000):
         with Progress(
@@ -49,37 +44,19 @@ class Trainer:
             MofNCompleteColumn(),
             console=console,
         ) as progress:
-            task = progress.add_task("[cyan]Training...", total=episodes)
+            task = progress.add_task("[cyan]Testing...", total=episodes)
             for ep in range(episodes):
-                self.episode = ep
-                if self.epsilon > self.epsilon_min:
-                    self.epsilon *= self.epsilon_decay
-                self.train()
-
-                if ep % (episodes // 20) == 0:
-                    model_path = os.path.join(self.save_dir, f"model_ep{ep}.pt")
-                    torch.save(self.agent.q_net.state_dict(), model_path)
-                    logger.info(f"Saved model checkpoint to {model_path}")
-
-                if ep % (episodes // 100) == 0:
-                    eval_reward = self.evaluate()
-                    if eval_reward > self.best_reward:
-                        self.best_reward = eval_reward
-                        model_path = os.path.join(self.save_dir, "best_model.pt")
-                        torch.save(self.agent.q_net.state_dict(), model_path)
-                        logger.info(
-                            f"Saved new best model to {model_path} with reward {eval_reward}"
-                        )
-                    logger.info(
-                        f"[TrueEval] Ep: {ep} Eval Reward: {eval_reward:.2f} SC: {self.env_count}"
-                    )
-                    wandb.log(
-                        {
-                            "Episode": ep,
-                            "Env Step Count": self.env_count,
-                            "Eval Reward": eval_reward,
-                        }
-                    )
+                eval_reward = self.evaluate()
+                logger.info(
+                    f"Episode {ep} - Test Step Count: {self.env_count}, Test Reward: {eval_reward}"
+                )
+                wandb.log(
+                    {
+                        "Episode": ep,
+                        "Test Step Count": self.env_count,
+                        "Test Reward": eval_reward,
+                    }
+                )
                 progress.update(task, advance=1)
 
     def train(self):
@@ -102,7 +79,7 @@ class Trainer:
             self.env_count += 1
 
         for _ in range(self.train_per_step - 1):
-            self.agent.learn()
+            self.agent.train()
         if self.episode % self.target_update_frequency == 0:
             logger.debug(
                 f"Updating target network at episode {self.episode} and env count {self.env_count}"
@@ -112,7 +89,7 @@ class Trainer:
         wandb.log(
             {
                 "Episode": self.episode,
-                "Env Step Count": self.env_count,
+                "Learning R" "Env Step Count": self.env_count,
                 "Total Reward": total_reward,
                 "Epsilon": self.epsilon,
             }
@@ -138,24 +115,19 @@ class Trainer:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--save-dir", type=str, default="./results")
-    parser.add_argument("--wandb-run-name", type=str, default="cartpole-train")
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--memory-size", type=int, default=100000)
-    parser.add_argument("--lr", type=float, default=0.0001)
-    parser.add_argument("--discount-factor", type=float, default=0.99)
-    parser.add_argument("--epsilon-start", type=float, default=1.0)
-    parser.add_argument("--epsilon-decay", type=float, default=0.9999)
-    parser.add_argument("--epsilon-min", type=float, default=0.05)
-    parser.add_argument("--target-update-frequency", type=int, default=100)
-    # parser.add_argument("--max-episode-steps", type=int, default=10000)
-    parser.add_argument("--train-per-step", type=int, default=4)
+    parser.add_argument("--wandb-run-name", type=str, default="cartpole-test")
+    parser.add_argument(
+        "--model-path", type=str, required=True, help="Path to trained .pt model"
+    )
+    parser.add_argument(
+        "--test-episodes", type=int, default=100, help="Number of test episodes"
+    )
     parser.add_argument(
         "--log-level",
         type=str,
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
     )
-    parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
     wandb.init(
@@ -166,11 +138,5 @@ if __name__ == "__main__":
     logger.remove()
     logger.add(lambda msg: console.print(msg, end=""), level=args.log_level)
 
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
-
-    trainer = Trainer(args)
-    trainer.run(episodes=10_000)
-    trainer.evaluate()
+    tester = Tester(args)
+    tester.run(episodes=args.test_episodes)
