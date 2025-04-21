@@ -83,7 +83,7 @@ def evaluate(args):
         obs, _ = env.reset(seed=args.seed + ep)
         state = preprocessor.reset(obs)
         done = False
-        total_reward = 0
+        total_reward = 0.0
         frames = []
         frame_idx = 0
 
@@ -97,7 +97,7 @@ def evaluate(args):
 
             next_obs, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
-            total_reward += reward
+            total_reward += float(reward)
             state = preprocessor.step(next_obs)
             frame_idx += 1
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=str, default="./eval_videos")
     parser.add_argument("--episodes", type=int, default=10)
     parser.add_argument(
-        "--seed", type=int, default=313551076, help="Random seed for evaluation"
+        "--seed", type=int, default=42, help="Random seed for evaluation"
     )
     args = parser.parse_args()
     evaluate(args)
