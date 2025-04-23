@@ -7,9 +7,9 @@ import gymnasium as gym
 import ale_py
 import os
 from collections import deque
-import wandb
 from loguru import logger
-from rich.console import Console
+
+from models import CartPoleDQN, PongDQN
 
 gym.register_envs(ale_py)
 
@@ -21,35 +21,7 @@ def init_weights(m):
             nn.init.constant_(m.bias, 0)
 
 
-class DQN(nn.Module):
-    """
-    Design the architecture of your deep Q network
-    - Input size is the same as the state dimension; the output size is the same as the number of actions
-    - Feel free to change the architecture (e.g. number of hidden layers and the width of each hidden layer) as you like
-    - Feel free to add any member variables/functions whenever needed
-    """
-
-    def __init__(self, num_actions):
-        super(DQN, self).__init__()
-        # An example:
-        self.network = nn.Sequential(
-            nn.Linear(4, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, num_actions),
-        )
-
-    def forward(self, x):
-        return self.network(x)
-
-
 class PrioritizedReplayBuffer:
-    """
-    Prioritizing the samples in the replay memory by the Bellman error
-    See the paper (Schaul et al., 2016) at https://arxiv.org/abs/1511.05952
-    """
-
     def __init__(self, capacity, alpha=0.6, beta=0.4):
         self.capacity = capacity
         self.alpha = alpha
@@ -78,13 +50,23 @@ class PrioritizedReplayBuffer:
 
 
 class DQNAgent:
-    def __init__(self, num_actions=2, args=None):
+    def __init__(self, env, args):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info("Using device:", self.device)
+        logger.info(f"Using device: {self.device}")
 
-        self.num_actions = num_actions
+        match env.spec.id:
+            case "CartPole-v1":
+                self.input_state = 4
+                self.num_actions = 2
+                self.DQN = CartPoleDQN
+            case "ALE/Pong-v5":
+                self.input_state = 4
+                self.num_actions = 6
+                self.DQN = PongDQN
+            case _:
+                raise ValueError(f"Unsupported environment: {env}")
 
-        self.q_net = DQN(self.num_actions).to(self.device)
+        self.q_net = self.DQN(self.input_state, self.num_actions).to(self.device)
         self.q_net.apply(init_weights)
 
         self.save_dir = args.save_dir
@@ -92,16 +74,19 @@ class DQNAgent:
 
     def train(self, args):
         self.batch_size = args.batch_size
+        self.update_period = args.update_period
         self.gamma = args.discount_factor
         self.memory = deque(maxlen=args.memory_size)
         self.epsilon = args.epsilon_start
         self.epsilon_decay = args.epsilon_decay
         self.epsilon_min = args.epsilon_min
 
-        self.target_net = DQN(self.num_actions).to(self.device)
+        self.target_net = self.DQN(self.input_state, self.num_actions).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
         self.target_net.eval()
         self.optimizer = optim.Adam(self.q_net.parameters(), lr=args.lr)
+
+        self.learn_count = 0
 
     def select_action(self, state, epsilon):
         if random.random() < epsilon:
@@ -138,9 +123,12 @@ class DQNAgent:
         loss = nn.MSELoss()(q_values, target_q_values)
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)
+        # torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)
         self.optimizer.step()
 
-    def update_target_network(self):
-        self.target_net.load_state_dict(self.q_net.state_dict())
-        logger.debug("Target network updated")
+        self.learn_count += 1
+        if self.learn_count % self.update_period == 0:
+            self.target_net.load_state_dict(self.q_net.state_dict())
+            logger.debug(
+                f"Target network updated at learn_count={self.learn_count/1000:.2f}k"
+            )
