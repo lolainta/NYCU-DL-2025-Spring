@@ -3,15 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import random
-import gymnasium as gym
-import ale_py
 import os
 from collections import deque
 from loguru import logger
 
 from models import CartPoleDQN, PongDQN
-
-gym.register_envs(ale_py)
 
 
 def init_weights(m):

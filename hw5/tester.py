@@ -1,19 +1,18 @@
-import wandb
+import ale_py
 import argparse
+import gymnasium as gym
+from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation
 from loguru import logger
+import numpy as np
+import os
+import random
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
 import torch
-import gymnasium as gym
-import random
-import numpy as np
-from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation
-import os
+import wandb
 
 from dqn import DQNAgent
-from preproccess import AtariPreprocessor, DummyPreprocessor
-
-console = Console()
+from preproccess import DummyPreprocessor
 
 
 class Tester:
@@ -31,7 +30,7 @@ class Tester:
             )
             self.env = FrameStackObservation(self.env, 4)
 
-        self.num_actions = self.env.action_space.n
+        self.num_actions = self.env.action_space.n  # type: ignore
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info("Using device:", self.device)
@@ -84,7 +83,7 @@ class Tester:
             action = self.agent.select_action(state, 0.0)
             next_obs, reward, terminated, truncated, _ = self.env.step(action)
             done = terminated or truncated
-            total_reward += reward
+            total_reward += float(reward)
             state = self.preprocessor.step(next_obs)
 
         return total_reward
@@ -123,7 +122,8 @@ if __name__ == "__main__":
 
     args.save_dir = os.path.join(args.save_dir, args.env, args.exp)
     args.env_name = "ALE/Pong-v5" if args.env == "pong" else "CartPole-v1"
-
+    if args.env == "pong":
+        gym.register_envs(ale_py)
     wandb.init(
         project="DLP-Lab5-DQN",
         name=f"{args.env}-{args.exp}-test",
@@ -131,6 +131,7 @@ if __name__ == "__main__":
     )
     wandb.config.update(args)
 
+    console = Console()
     logger.remove()
     logger.add(
         lambda msg: console.print(msg, end=""),

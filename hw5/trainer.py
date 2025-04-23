@@ -1,23 +1,18 @@
-import wandb
+import ale_py
 import argparse
+import gymnasium as gym
+from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation
 from loguru import logger
+import numpy as np
+import os
+import random
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
-import os
 import torch
-import gymnasium as gym
-import numpy as np
-import random
-import ale_py
-import imageio
+import wandb
 
 from dqn import DQNAgent
-from preproccess import DummyPreprocessor, AtariPreprocessor
-from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation
-
-
-console = Console()
-gym.register_envs(ale_py)
+from preproccess import DummyPreprocessor
 
 
 class Trainer:
@@ -35,8 +30,8 @@ class Trainer:
             )
             self.env = FrameStackObservation(self.env, 4)
 
-        self.num_actions = self.env.action_space.n
-        logger.info(f"Environment: {self.env.spec.id}")
+        self.num_actions = self.env.action_space.n  # type: ignore
+        logger.info(f"Environment: {self.env.spec.id}")  # type: ignore
         logger.info(f"Action Space: {self.env.action_space}")
         logger.info(f"Observation Space: {self.env.observation_space}")
 
@@ -87,12 +82,12 @@ class Trainer:
 
                 self.train()
 
-                if ep % (episodes // 20) == 0:
+                if (ep + 1) % (episodes // 20) == 0:
                     model_path = os.path.join(self.save_dir, f"model_ep{ep}.pt")
                     torch.save(self.agent.q_net.state_dict(), model_path)
                     logger.info(f"Saved model checkpoint to {model_path}")
 
-                if ep % (episodes // 50) == 0:
+                if (ep + 1) % (episodes // 50) == 0:
                     eval_reward = 0
                     progress.reset(eval_task)
                     progress.update(eval_task, visible=True)
@@ -172,12 +167,6 @@ class Trainer:
             total_reward += float(reward)
             frames.append(self.env.render())
 
-        imageio.mimsave(
-            os.path.join(self.save_dir, f"eval_{self.episode}.gif"),
-            frames,
-            fps=30,
-        )
-
         return total_reward
 
 
@@ -197,7 +186,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--discount-factor", type=float, default=0.99)
     parser.add_argument("--epsilon-start", type=float, default=1.0)
-    parser.add_argument("--epsilon-decay", type=float, default=0.99999)
+    parser.add_argument("--epsilon-decay", type=float, default=0.99995)
     parser.add_argument("--epsilon-min", type=float, default=0.05)
     parser.add_argument("--update-period", type=int, default=1000)
     parser.add_argument("--learn-per-step", type=int, default=1)
@@ -218,6 +207,8 @@ if __name__ == "__main__":
 
     args.save_dir = os.path.join(args.save_dir, args.env, args.exp)
     args.env_name = "ALE/Pong-v5" if args.env == "pong" else "CartPole-v1"
+    if args.env == "pong":
+        gym.register_envs(ale_py)
 
     wandb.init(
         project="DLP-Lab5-DQN",
@@ -226,6 +217,7 @@ if __name__ == "__main__":
     )
     wandb.config.update(args)
 
+    console = Console()
     logger.remove()
     logger.add(
         lambda msg: console.print(msg, end=""),
