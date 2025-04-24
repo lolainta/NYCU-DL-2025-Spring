@@ -4,7 +4,6 @@ import torch.optim as optim
 import numpy as np
 import random
 import os
-from collections import deque
 from loguru import logger
 
 from models import CartPoleDQN, PongDQN
@@ -22,27 +21,43 @@ class PrioritizedReplayBuffer:
         self.capacity = capacity
         self.alpha = alpha
         self.beta = beta
+
         self.buffer = []
         self.priorities = np.zeros((capacity,), dtype=np.float32)
         self.pos = 0
 
     def add(self, transition, error):
-        ########## YOUR CODE HERE (for Task 3) ##########
+        priority = (abs(error) + 1e-6) ** self.alpha
 
-        ########## END OF YOUR CODE (for Task 3) ##########
-        return
+        if len(self.buffer) < self.capacity:
+            self.buffer.append(transition)
+        else:
+            self.buffer[self.pos] = transition
+
+        self.priorities[self.pos] = priority
+        self.pos = (self.pos + 1) % self.capacity
 
     def sample(self, batch_size):
-        ########## YOUR CODE HERE (for Task 3) ##########
+        assert len(self.buffer) >= batch_size, "Not enough samples to sample from"
 
-        ########## END OF YOUR CODE (for Task 3) ##########
-        return
+        valid_size = len(self.buffer)
+        probs = self.priorities[:valid_size]
+        probs = probs / probs.sum()
+
+        indices = np.random.choice(valid_size, batch_size, p=probs)
+        samples = [self.buffer[i] for i in indices]
+
+        total = valid_size
+        weights = (total * probs[indices]) ** (-self.beta)
+        weights /= weights.max()
+        return samples, indices, weights.astype(np.float32)
 
     def update_priorities(self, indices, errors):
-        ########## YOUR CODE HERE (for Task 3) ##########
+        for idx, err in zip(indices, errors):
+            self.priorities[idx] = (abs(err) + 1e-6) ** self.alpha
 
-        ########## END OF YOUR CODE (for Task 3) ##########
-        return
+    def __len__(self):
+        return len(self.buffer)
 
 
 class DQNAgent:
@@ -72,10 +87,9 @@ class DQNAgent:
         self.batch_size = args.batch_size
         self.update_period = args.update_period
         self.gamma = args.discount_factor
-        self.memory = deque(maxlen=args.memory_size)
-        self.epsilon = args.epsilon_start
-        self.epsilon_decay = args.epsilon_decay
-        self.epsilon_min = args.epsilon_min
+        self.memory = PrioritizedReplayBuffer(
+            args.memory_size, args.per_alpha, args.per_beta
+        )
 
         self.target_net = self.DQN(self.input_state, self.num_actions).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
@@ -96,13 +110,17 @@ class DQNAgent:
         self.q_net.train()
         return q_values.argmax().item()
 
-    def learn(self):
+    def learn(self) -> float:
         if len(self.memory) < self.batch_size:
-            return
+            return float("-inf")
 
-        states, actions, rewards, next_states, dones = zip(
-            *random.sample(self.memory, self.batch_size)
-        )
+        # states, actions, rewards, next_states, dones = zip(
+        #     *random.sample(self.memory, self.batch_size)
+        # )
+        batch, indices, weights = self.memory.sample(self.batch_size)
+        indices = torch.tensor(indices, dtype=torch.int64).to(self.device)
+        weights = torch.tensor(weights, dtype=torch.float32).to(self.device)
+        states, actions, rewards, next_states, dones = zip(*batch)
 
         states = torch.from_numpy(np.array(states).astype(np.float32)).to(self.device)
         next_states = torch.from_numpy(np.array(next_states).astype(np.float32)).to(
@@ -115,12 +133,20 @@ class DQNAgent:
         with torch.no_grad():
             next_q_values = self.target_net(next_states).max(1)[0]
             target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
+            # target_q_values = rewards + self.gamma * next_q_values
         q_values = self.q_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        loss = nn.MSELoss()(q_values, target_q_values)
+
+        td_errors = target_q_values - q_values
+        loss = (td_errors**2 * weights).mean()
+        # loss = nn.MSELoss()(q_values, target_q_values)
         self.optimizer.zero_grad()
         loss.backward()
         # torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), 1.0)
         self.optimizer.step()
+
+        self.memory.update_priorities(indices, td_errors.detach().cpu().numpy())
+
+        # self.memory.beta = min(1.0, self.memory.beta + 0.000001)
 
         self.learn_count += 1
         if self.learn_count % self.update_period == 0:
@@ -128,3 +154,7 @@ class DQNAgent:
             logger.debug(
                 f"Target network updated at learn_count={self.learn_count/1000:.2f}k"
             )
+            logger.debug(
+                f"Memory size: {len(self.memory)}, beta: {self.memory.beta:.2f}"
+            )
+        return loss.item()

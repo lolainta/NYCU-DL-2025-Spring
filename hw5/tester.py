@@ -33,7 +33,7 @@ class Tester:
         self.num_actions = self.env.action_space.n  # type: ignore
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info("Using device:", self.device)
+        logger.info(f"Using device: {self.device}")
 
         self.agent = DQNAgent(self.env, args=args)
         self.agent.q_net.load_state_dict(
@@ -109,7 +109,7 @@ if __name__ == "__main__":
         "--model-path", type=str, required=True, help="Path to trained .pt model"
     )
     parser.add_argument(
-        "--test-episodes", type=int, default=100, help="Number of test episodes"
+        "--episodes", type=int, default=50, help="Number of test episodes"
     )
     parser.add_argument(
         "--log-level",
@@ -126,8 +126,10 @@ if __name__ == "__main__":
         gym.register_envs(ale_py)
     wandb.init(
         project="DLP-Lab5-DQN",
-        name=f"{args.env}-{args.exp}-test",
+        name=f"{args.exp}",
+        tags=[args.env, "test"],
         save_code=True,
+        settings=wandb.Settings(code_dir="."),
     )
     wandb.config.update(args)
 
@@ -146,4 +148,4 @@ if __name__ == "__main__":
 
     logger.info(f"{args}")
     tester = Tester(args)
-    tester.run(episodes=args.test_episodes)
+    tester.run(episodes=args.episodes)
