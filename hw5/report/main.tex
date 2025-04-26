@@ -2,10 +2,18 @@
 
 \usepackage[a4paper,margin=1in]{geometry}
 \usepackage[hidelinks]{hyperref}
-
+\hypersetup{
+    % colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=blue,
+    citecolor=blue,
+    pdftitle={Deep Learning Homework 5 Report},
+    pdfauthor={Cheng-Liang Chi},
+}
+\usepackage{xspace}
 \usepackage[svgnames]{xcolor}
 \usepackage[outputdir=build]{minted}
-
 \definecolor{bgcolor}{rgb}{0.95, 0.95, 0.95}  % Light gray background for readability
 \setminted{
     fontsize=\small,    % Adjust code font size
@@ -56,7 +64,7 @@
 \maketitle
 \tableofcontents
 \newpage
-
+\input{alias.tex}
 \input{sections/introduction.tex}
 \input{sections/implementation.tex}
 \input{sections/discussion.tex}

@@ -2,10 +2,83 @@
 \label{sec:implementation}
 
 \subsection{Refactoring the Sample Code}
-\subsubsection{Trainer Class}
-\subsubsection{DQNAgent Class}
+
+First, since the sample code is not modular, we refactored the code into multiple classes. The main classes are:
+\begin{itemize}
+    \item \textbf{DQN}: This class implements the neural network architecture. It is a subclass of the \href{https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module}{\texttt{torch.nn.Module}} class.
+    \item \textbf{DQNAgent}: This class represents the agent that interacts with the environment. It contains methods for selecting actions, storing experiences, and updating the Q-values.
+          The agent is responsible for the exploration and exploitation of the environment.
+          It also contains the experience replay buffer, which stores the agent's experiences for training.
+          However, the backend neural network is modularized into a separate class. That is we can reuse the same agent class for different neural networks dealing with different environments we focused on.
+    \item \textbf{Trainer}: This class is responsible for training the agent. It handles the training loop, including collecting experiences, updating the model, and logging results.
+          By the way, the trainer class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
+    \item \textbf{Tester}: This class is responsible for testing the agent. It handles the testing loop, it is similar to the trainer class, but it does not update the model.
+          The tester class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
+\end{itemize}
+
+With this refactoring, I can easily add new features and techniques to the agent, trainer, and tester classes without modifying the core logic of the DQN algorithm.
+This modularity also allows us to reuse the same code for different tasks and environments, making it easier to experiment with different architectures and techniques.
+
 \subsubsection{DQN Class}
+
+The DQN class is a subclass of the \href{https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module}{\texttt{torch.nn.Module}} class. It implements the neural network architecture for the DQN algorithm.
+
+For the \cartpole environment, I used a simple feedforward neural network with two hidden layers. The input layer has 4 neurons (one for each state variable), and the output layer has 2 neurons (one for each action).
+Both hidden layers have 128 neurons, and the activation function is ReLU.
+The architecture is designed to be simple and efficient, as the \cartpole environment has a relatively low-dimensional state space.
+The output layer uses a linear activation function, which is suitable for the DQN algorithm since it outputs Q-values for each action.
+
+The implementation of the \texttt{CartPoleDQN} class is as follows:
+\inputminted[firstline=5,lastline=17]{python}{../models.py}
+
+For the \pong environment, I used a convolutional neural network (CNN) with three convolutional layers and two fully connected layers. The architecture is designed to effectively capture the spatial features of the input frames, allowing the agent to learn optimal policies for playing the game.
+
+The implementation of the \texttt{PongDQN} class is as follows:
+\inputminted[firstline=20]{python}{../models.py}
+
+\subsubsection{DQNAgent Class}
+
+The DQNAgent class is responsible for interacting with the environment and managing the agent's experiences.
+It contains methods for selecting actions, storing experiences, and updating the Q-values.
+
+The agent uses an $\epsilon$-greedy policy for action selection, where it explores the environment with a probability of $\epsilon$ and exploits the learned Q-values with a probability of 1 - $\epsilon$.
+The agent also maintains a replay buffer, which stores the agent's experiences for training.
+The replay buffer is implemented using the the \texttt{PrioritizedReplayBuffer} class, which will be discussed in Section \ref{sec:per}.
+
+The implementation of the \texttt{DQNAgent} class is as follows:
+\inputminted[firstline=85]{python}{../dqn.py}
+
+\subsubsection{Trainer Class}
+
+The Trainer class is responsible for training the agent.
+It handles the training loop, including collecting experiences, updating the model, and logging results.
+The trainer class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
+The implementation of the \texttt{Trainer} class is as follows:
+\inputminted[firstline=18,lastline=170]{python}{../trainer.py}
+
+\subsubsection{Tester Class}
+
+The Tester class is responsible for testing the agent.
+It handles the testing loop, it is similar to the trainer class, but it does not update the model.
+The tester class is also responsible for loading the environment and the agent.
+It will handle agent's actions and interact it with the environment.
+The implementation of the \texttt{Tester} class is as follows:
+\inputminted[firstline=19,lastline=102]{python}{../tester.py}
+
+\subsection{Hyperparameters}
+
+The hyperparameters used in the training process are crucial for the performance of the DQN algorithm.
+
+For Tasks 1 and 2, we are required to use vanilla DQN without any modifications.
+To meet this requirement, certain hyperparameters must be set accordingly.
+For example, setting $\alpha=0$ in the \texttt{PrioritizedReplayBuffer} makes the buffer behave like a uniform replay buffer.
+Additionally, setting \texttt{update\_period = 1} in the DQNAgent class ensures that the model is updated every time a batch is sampled from the replay buffer, aligning with the standard behavior of vanilla DQN.
+And last, setting \texttt{n\_steps=1} in the DQNAgent class ensures that the agent uses one-step returns for training, which is standard in vanilla DQN.
+
+
 \subsection{Bellman Equation}
 \subsection{Prioritized Experience Replay}
+\label{sec:per}
+
 \subsection{Multi-Step Reward}
 \subsection{Weight \& Biases Using Techniques}
