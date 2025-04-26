@@ -73,7 +73,7 @@ class Trainer:
                 if self.env_step > 2e6:
                     logger.info(f"Reached 2M steps, stopping training.")
                     break
-                if self.episode % 20 == 0:
+                if (ep + 1) % 20 == 0:
                     logger.info(
                         f"Episode {self.episode}: Environment Step: {self.env_step/1000:.2f}k, epsilon: {self.epsilon:.4f}"
                     )
@@ -204,7 +204,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--eval-episodes",
         type=int,
-        default=5,
+        default=10,
         help="Number of eval episodes",
     )
     parser.add_argument("--seed", type=int, default=42)
