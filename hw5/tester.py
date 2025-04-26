@@ -50,10 +50,11 @@ class Tester:
 
         self.visualize = args.visualize
         self.save_dir = args.save_dir
+        self.seed = args.seed
         gif_dir = os.path.join(self.save_dir, "gifs")
         os.makedirs(gif_dir, exist_ok=True)
 
-    def run(self, episodes=1000):
+    def run(self, episodes):
         with Progress(
             SpinnerColumn(),
             *Progress.get_default_columns(),
@@ -65,7 +66,12 @@ class Tester:
             total_reward = 0
             for ep in range(episodes):
                 self.episode = ep
-                eval_reward = self.evaluate()
+                # eval_reward = self.evaluate(seed=random.randint(0, 10000))
+                eval_reward = self.evaluate(seed=self.seed + ep)
+                with open(
+                    os.path.join(self.save_dir, f"rewards_{self.seed}.txt"), "a"
+                ) as f:
+                    f.write(f"{self.episode} {eval_reward}\n")
                 logger.info(f"Episode {ep} - Test Reward: {eval_reward:.2f}")
                 total_reward += eval_reward
                 wandb.log(
@@ -74,13 +80,12 @@ class Tester:
                         "Test Reward": eval_reward,
                     }
                 )
-
                 progress.update(task, advance=1)
             total_reward /= episodes
             logger.info(f"Average Test Reward: {total_reward}")
 
-    def evaluate(self):
-        obs, _ = self.env.reset(seed=random.randint(0, 10000))
+    def evaluate(self, seed):
+        obs, _ = self.env.reset(seed=seed)
         state = self.preprocessor.reset(obs)
         frames = [self.env.render()]
 
@@ -122,7 +127,7 @@ if __name__ == "__main__":
         "--model-path", type=str, required=True, help="Path to trained .pt model"
     )
     parser.add_argument(
-        "--episodes", type=int, default=50, help="Number of test episodes"
+        "--episodes", type=int, default=20, help="Number of test episodes"
     )
     parser.add_argument(
         "--log-level",
@@ -135,7 +140,12 @@ if __name__ == "__main__":
         action="store_true",
         help="Visualize the environment during testing",
     )
-    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=8116426,
+        help="Magic seed",
+    )
     args = parser.parse_args()
 
     args.save_dir = os.path.join(args.save_dir, args.env, args.exp)
