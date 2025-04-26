@@ -2,6 +2,7 @@ import ale_py
 import argparse
 import gymnasium as gym
 from gymnasium.wrappers import AtariPreprocessing, FrameStackObservation
+import imageio
 from loguru import logger
 import numpy as np
 import os
@@ -47,6 +48,11 @@ class Tester:
         self.episode = 0
         self.best_reward = 0 if self.env == "cartpole" else -21
 
+        self.visualize = args.visualize
+        self.save_dir = args.save_dir
+        gif_dir = os.path.join(self.save_dir, "gifs")
+        os.makedirs(gif_dir, exist_ok=True)
+
     def run(self, episodes=1000):
         with Progress(
             SpinnerColumn(),
@@ -58,6 +64,7 @@ class Tester:
             task = progress.add_task("[cyan]Testing...", total=episodes)
             total_reward = 0
             for ep in range(episodes):
+                self.episode = ep
                 eval_reward = self.evaluate()
                 logger.info(f"Episode {ep} - Test Reward: {eval_reward:.2f}")
                 total_reward += eval_reward
@@ -75,6 +82,7 @@ class Tester:
     def evaluate(self):
         obs, _ = self.env.reset(seed=random.randint(0, 10000))
         state = self.preprocessor.reset(obs)
+        frames = [self.env.render()]
 
         done = False
         total_reward = 0
@@ -85,7 +93,12 @@ class Tester:
             done = terminated or truncated
             total_reward += float(reward)
             state = self.preprocessor.step(next_obs)
+            frames.append(self.env.render())
 
+        if self.visualize:
+            gif_path = os.path.join(self.save_dir, "gifs", f"test_{self.episode}.gif")
+            imageio.mimsave(gif_path, frames, fps=30)  # type: ignore
+            logger.info(f"Saved test episode frames to {gif_path}")
         return total_reward
 
 
@@ -116,6 +129,11 @@ if __name__ == "__main__":
         type=str,
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+    )
+    parser.add_argument(
+        "--visualize",
+        action="store_true",
+        help="Visualize the environment during testing",
     )
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()

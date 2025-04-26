@@ -1,3 +1,4 @@
+from collections import deque
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -17,25 +18,46 @@ def init_weights(m):
 
 
 class PrioritizedReplayBuffer:
-    def __init__(self, capacity, alpha=0.6, beta=0.4):
+    def __init__(self, capacity, alpha=0.6, beta=0.4, n_steps=3, gamma=0.99):
         self.capacity = capacity
         self.alpha = alpha
         self.beta = beta
+        self.n_steps = n_steps
+        self.gamma = gamma
 
         self.buffer = []
         self.priorities = np.zeros((capacity,), dtype=np.float32)
+        self.n_step_buffer = deque(maxlen=n_steps)
         self.pos = 0
 
     def add(self, transition, error):
+        self.n_step_buffer.append(transition)
+        if len(self.n_step_buffer) < self.n_steps:
+            return
+
+        # Compute multistep reward and next state
+        reward, next_state, done = self._get_multistep_transition()
+        state, action = self.n_step_buffer[0][:2]
+        multistep_transition = (state, action, reward, next_state, done)
+
         priority = (abs(error) + 1e-6) ** self.alpha
 
         if len(self.buffer) < self.capacity:
-            self.buffer.append(transition)
+            self.buffer.append(multistep_transition)
         else:
-            self.buffer[self.pos] = transition
+            self.buffer[self.pos] = multistep_transition
 
         self.priorities[self.pos] = priority
         self.pos = (self.pos + 1) % self.capacity
+
+    def _get_multistep_transition(self):
+        reward, next_state, done = 0, None, False
+        for idx, (_, _, r, ns, d) in enumerate(self.n_step_buffer):
+            reward += (self.gamma**idx) * r
+            next_state, done = ns, d
+            if done:
+                break
+        return reward, next_state, done
 
     def sample(self, batch_size):
         assert len(self.buffer) >= batch_size, "Not enough samples to sample from"
@@ -114,9 +136,6 @@ class DQNAgent:
         if len(self.memory) < self.batch_size:
             return float("-inf")
 
-        # states, actions, rewards, next_states, dones = zip(
-        #     *random.sample(self.memory, self.batch_size)
-        # )
         batch, indices, weights = self.memory.sample(self.batch_size)
         indices = torch.tensor(indices, dtype=torch.int64).to(self.device)
         weights = torch.tensor(weights, dtype=torch.float32).to(self.device)

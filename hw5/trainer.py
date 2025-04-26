@@ -87,14 +87,12 @@ class Trainer:
                 if (ep + 1) % (episodes // 50) == 0:
                     eval_rewards = []
                     progress.reset(eval_task)
-                    progress.update(eval_task, visible=True)
                     progress.update(
                         eval_task, description=f"[cyan]Episode {ep}: Evaluating..."
                     )
                     for _ in range(self.eval_episodes):
                         eval_rewards.append(self.evaluate())
                         progress.update(eval_task, advance=1)
-                    progress.stop_task(eval_task)
                     eval_reward = sum(eval_rewards) / len(eval_rewards)
                     logger.info(
                         f"Episode {ep} - Eval Reward: {eval_reward:.2f} {eval_rewards}"
@@ -137,9 +135,9 @@ class Trainer:
             self.env_step += 1
 
             for _ in range(self.learn_per_step):
-                if self.epsilon > self.epsilon_min:
-                    self.epsilon *= self.epsilon_decay
                 loss = self.agent.learn()
+                if loss != float("-inf") and self.epsilon > self.epsilon_min:
+                    self.epsilon *= self.epsilon_decay
                 if loss != float("-inf"):
                     avg_loss += loss
         avg_loss /= self.learn_per_step
@@ -183,8 +181,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--exp", type=str, default="exp")
     parser.add_argument("--save-dir", type=str, default="./results")
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--memory-size", type=int, default=1_000_000)
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--memory-size", type=int, default=100_000)
     parser.add_argument("--lr", type=float, default=0.0001)
     parser.add_argument("--discount-factor", type=float, default=0.99)
     parser.add_argument("--epsilon-start", type=float, default=1.0)
@@ -203,10 +201,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--eval-episodes",
         type=int,
-        default=2,
+        default=5,
         help="Number of eval episodes",
     )
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--n-steps",
+        type=int,
+        default=3,
+        help="Number of steps for multistep rewards",
+    )
+
     args = parser.parse_args()
 
     args.save_dir = os.path.join(args.save_dir, args.env, args.exp)
