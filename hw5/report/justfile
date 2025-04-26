@@ -1,0 +1,13 @@
+# Set the main LaTeX file name (without .tex extension)
+MAIN := "main"
+
+# Compile with latexmk (automatically determines how many times to run pdflatex)
+pdf:
+    latexmk -pdf -bibtex -shell-escape -interaction=nonstopmode {{MAIN}}.tex --output-directory=build
+    cp build/{{MAIN}}.pdf report.pdf
+
+# Clean auxiliary files
+clean:
+    latexmk -c
+    rm -rf build/*
+    rm -f report.pdf
