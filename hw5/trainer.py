@@ -64,7 +64,8 @@ class Trainer:
         ) as progress:
             task = progress.add_task("[cyan]Training...", total=episodes)
             eval_task = progress.add_task(
-                "[cyan]Episode 0: Evaluating...", total=self.episode
+                "[cyan]Episode 0: Evaluating...",
+                total=self.eval_episodes,
             )
             for ep in range(episodes):
                 progress.update(task, description=f"[cyan]Episode {ep}: Training...")
@@ -94,6 +95,7 @@ class Trainer:
                         eval_rewards.append(self.evaluate())
                         progress.update(eval_task, advance=1)
                     eval_reward = sum(eval_rewards) / len(eval_rewards)
+                    max_eval_reward = max(eval_rewards)
                     logger.info(
                         f"Episode {ep} - Eval Reward: {eval_reward:.2f} {eval_rewards}"
                     )
@@ -110,6 +112,7 @@ class Trainer:
                             "Episode": ep,
                             "Env Step Count": self.env_step,
                             "Eval Reward": eval_reward,
+                            "Max Eval Reward": max_eval_reward,
                         }
                     )
                 progress.update(task, advance=1)
@@ -211,13 +214,20 @@ if __name__ == "__main__":
         default=3,
         help="Number of steps for multistep rewards",
     )
-
+    parser.add_argument("--vanilla", action="store_true", help="Use vanilla DQN")
     args = parser.parse_args()
 
     args.save_dir = os.path.join(args.save_dir, args.env, args.exp)
     args.env_name = "ALE/Pong-v5" if args.env == "pong" else "CartPole-v1"
     if args.env == "pong":
         gym.register_envs(ale_py)
+    if args.vanilla:
+        args.update_period = 1
+        args.learn_per_step = 1
+        args.per_alpha = 0.0
+        args.per_beta = 1.0
+        args.n_steps = 1
+    logger.info(f"{args}")
 
     wandb.init(
         project="DLP-Lab5-DQN",
@@ -241,7 +251,6 @@ if __name__ == "__main__":
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
 
-    logger.info(f"{args}")
     trainer = Trainer(args)
     trainer.run(episodes=500)
     trainer.evaluate()
