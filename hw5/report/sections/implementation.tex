@@ -5,15 +5,15 @@
 
 First, since the sample code is not modular, we refactored the code into multiple classes. The main classes are:
 \begin{itemize}
-    \item \textbf{DQN}: This class implements the neural network architecture. It is a subclass of the \href{https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module}{\texttt{torch.nn.Module}} class.
-    \item \textbf{DQNAgent}: This class represents the agent that interacts with the environment. It contains methods for selecting actions, storing experiences, and updating the Q-values.
-          The agent is responsible for the exploration and exploitation of the environment.
-          It also contains the experience replay buffer, which stores the agent's experiences for training.
-          However, the backend neural network is modularized into a separate class. That is we can reuse the same agent class for different neural networks dealing with different environments we focused on.
-    \item \textbf{Trainer}: This class is responsible for training the agent. It handles the training loop, including collecting experiences, updating the model, and logging results.
-          By the way, the trainer class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
-    \item \textbf{Tester}: This class is responsible for testing the agent. It handles the testing loop, it is similar to the trainer class, but it does not update the model.
-          The tester class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
+      \item \textbf{DQN}: This class implements the neural network architecture. It is a subclass of the \href{https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module}{\texttt{torch.nn.Module}} class.
+      \item \textbf{DQNAgent}: This class represents the agent that interacts with the environment. It contains methods for selecting actions, storing experiences, and updating the Q-values.
+            The agent is responsible for the exploration and exploitation of the environment.
+            It also contains the experience replay buffer, which stores the agent's experiences for training.
+            However, the backend neural network is modularized into a separate class. That is we can reuse the same agent class for different neural networks dealing with different environments we focused on.
+      \item \textbf{Trainer}: This class is responsible for training the agent. It handles the training loop, including collecting experiences, updating the model, and logging results.
+            By the way, the trainer class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
+      \item \textbf{Tester}: This class is responsible for testing the agent. It handles the testing loop, it is similar to the trainer class, but it does not update the model.
+            The tester class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
 \end{itemize}
 
 With this refactoring, I can easily add new features and techniques to the agent, trainer, and tester classes without modifying the core logic of the DQN algorithm.
@@ -77,8 +77,69 @@ And last, setting \texttt{n\_steps=1} in the DQNAgent class ensures that the age
 
 
 \subsection{Bellman Equation}
+
+The Bellman equation is a fundamental concept in reinforcement learning that describes the relationship between the value of a state and the values of its successor states.
+In the context of DQN, the Bellman equation is used to update the Q-values based on the agent's experiences.
+The Bellman equation for Q-learning is given by:
+\begin{equation}
+      Q(s, a) = r + \gamma \max_{a'} Q(s', a')
+\end{equation}
+where:
+\begin{itemize}
+      \item $Q(s, a)$ is the Q-value for state $s$ and action $a$.
+      \item $r$ is the reward received after taking action $a$ in state $s$.
+      \item $\gamma$ is the discount factor, which determines the importance of future rewards.
+      \item $s'$ is the next state after taking action $a$ in state $s$.
+      \item $\max_{a'} Q(s', a')$ is the maximum Q-value for the next state $s'$ over all possible actions $a'$.
+\end{itemize}
+The DQN algorithm uses a neural network to approximate the Q-values, and the Bellman equation is used to update the weights of the network during training.
+The Q-value update is performed using the following loss function:
+\begin{equation}
+      L(\theta) = \mathbb{E}_{(s, a, r, s') \sim D} \left[ \left( r + \gamma \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right]
+\end{equation}
+where:
+\begin{itemize}
+      \item $L(\theta)$ is the loss function.
+      \item $\theta$ are the weights of the Q-network.
+      \item $\theta^-$ are the weights of the target network, which are updated periodically.
+      \item $D$ is the replay buffer containing the agent's experiences.
+      \item $\mathbb{E}$ is the expectation operator, which averages over the experiences in the replay buffer.
+\end{itemize}
+The loss function measures the difference between the predicted Q-value and the target Q-value. The weights of the Q-network are updated using gradient descent to minimize this loss.
+The target Q-value is computed using the Bellman equation, and the target network is used to stabilize the training process.
+The target network is a separate copy of the Q-network, updated periodically every $C$ steps (a hyperparameter) by copying the weights of the Q-network.
+This periodic update reduces the variance of the Q-value updates, making the training process more stable and efficient.
+
+The implementation of the Bellman equation in the DQN algorithm is done in the \texttt{learn} method of the \texttt{DQNAgent} class.
+In this method, the Q-values are updated based on the agent's experiences, ensuring that the learning process aligns with the principles of reinforcement learning.
+The implementation of the \texttt{learn} method is as follows:
+
+\inputminted[firstline=135, highlightlines={152-159}]{python}{../dqn.py}
+
 \subsection{Prioritized Experience Replay}
 \label{sec:per}
 
 \subsection{Multi-Step Reward}
+
+The multi-step reward is a technique used in reinforcement learning to improve the efficiency of learning by considering multiple steps of experience at once.
+In the context of DQN, multi-step rewards are used to update the Q-values based on a sequence of actions and rewards, rather than just the immediate reward.
+This approach allows the agent to learn from longer-term dependencies and can lead to faster convergence and better performance.
+The multi-step reward is computed by summing the rewards over a sequence of $n$ steps, discounted by the discount factor $\gamma$:
+\begin{equation}
+      R_t = r_t + \gamma r_{t+1} + \gamma^2 r_{t+2} + \ldots + \gamma^{n-1} r_{t+n-1}
+\end{equation}
+where:
+\begin{itemize}
+      \item $R_t$ is the multi-step reward at time step $t$.
+      \item $r_t$ is the immediate reward at time step $t$.
+      \item $\gamma$ is the discount factor.
+      \item $n$ is the number of steps to consider for the multi-step reward.
+      \item $r_{t+k}$ is the immediate reward at time step $t+k$.
+\end{itemize}
+The multi-step reward is used to update the Q-values in the same way as the standard Bellman equation, but it incorporates the rewards from multiple steps.
+This allows the agent to learn from longer-term dependencies and can lead to faster convergence and better performance.
+The multi-step reward is implemented in the \texttt{PrioritizedReplayBuffer} class.
+
+\inputminted[firstline=20, lastline=82,highlightlines={53-60}]{python}{../dqn.py}
+
 \subsection{Weight \& Biases Using Techniques}
