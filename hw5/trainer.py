@@ -70,8 +70,8 @@ class Trainer:
             for ep in range(episodes):
                 progress.update(task, description=f"[cyan]Episode {ep}: Training...")
                 self.episode = ep
-                if self.env_step > 2e6:
-                    logger.info(f"Reached 2M steps, stopping training.")
+                if self.env_step > 20e6:
+                    logger.info(f"Reached 20M steps, stopping training.")
                     break
                 if (ep + 1) % 20 == 0:
                     logger.info(
@@ -214,6 +214,12 @@ if __name__ == "__main__":
         default=3,
         help="Number of steps for multistep rewards",
     )
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=500,
+        help="Maximum number of episodes to train",
+    )
     parser.add_argument("--vanilla", action="store_true", help="Use vanilla DQN")
     args = parser.parse_args()
 
@@ -252,5 +258,5 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(args.seed)
 
     trainer = Trainer(args)
-    trainer.run(episodes=500)
+    trainer.run(episodes=args.episodes)
     trainer.evaluate()

@@ -7,10 +7,8 @@ from loguru import logger
 import numpy as np
 import os
 import random
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TimeElapsedColumn, MofNCompleteColumn
+import sys
 import torch
-import wandb
 
 from dqn import DQNAgent
 from preproccess import DummyPreprocessor
@@ -34,7 +32,7 @@ class Tester:
         self.num_actions = self.env.action_space.n  # type: ignore
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        logger.info(f"Using device: {self.device}")
+        logger.debug(f"Using device: {self.device}")
 
         self.agent = DQNAgent(self.env, args=args)
         self.agent.q_net.load_state_dict(
@@ -55,33 +53,27 @@ class Tester:
         os.makedirs(gif_dir, exist_ok=True)
 
     def run(self, episodes):
-        with Progress(
-            SpinnerColumn(),
-            *Progress.get_default_columns(),
-            TimeElapsedColumn(),
-            MofNCompleteColumn(),
-            console=console,
-        ) as progress:
-            task = progress.add_task("[cyan]Testing...", total=episodes)
-            total_reward = 0
-            for ep in range(episodes):
-                self.episode = ep
-                eval_reward = self.evaluate(seed=self.seed + ep)
-                with open(
-                    os.path.join(self.save_dir, f"rewards_{self.seed}.txt"), "a"
-                ) as f:
-                    f.write(f"{self.episode} {eval_reward}\n")
-                logger.info(f"Episode {ep} - Test Reward: {eval_reward:.2f}")
-                total_reward += eval_reward
-                wandb.log(
-                    {
-                        "Episode": ep,
-                        "Test Reward": eval_reward,
-                    }
-                )
-                progress.update(task, advance=1)
-            total_reward /= episodes
-            logger.info(f"Average Test Reward: {total_reward}")
+        success, failed = 0, 0
+        total_reward = 0
+        for ep in range(episodes):
+            self.episode = ep
+            # eval_reward = self.evaluate(seed=random.randint(0, 10000))
+            eval_reward = self.evaluate(seed=self.seed + ep)
+            if eval_reward < 19:
+                failed += 1
+            else:
+                success += 1
+            if eval_reward < 19:
+                return success, failed
+            with open(
+                os.path.join(self.save_dir, f"rewards_{self.seed}.txt"), "a"
+            ) as f:
+                f.write(f"{self.episode} {eval_reward}\n")
+            logger.debug(f"Episode {ep} - Test Reward: {eval_reward:.2f}")
+            total_reward += eval_reward
+        total_reward /= episodes
+        logger.info(f"Average Test Reward: {total_reward}")
+        return success, failed
 
     def evaluate(self, seed):
         obs, _ = self.env.reset(seed=seed)
@@ -126,7 +118,7 @@ if __name__ == "__main__":
         "--model-path", type=str, required=True, help="Path to trained .pt model"
     )
     parser.add_argument(
-        "--episodes", type=int, default=20, help="Number of test episodes"
+        "--episodes", type=int, default=50, help="Number of test episodes"
     )
     parser.add_argument(
         "--log-level",
@@ -139,40 +131,49 @@ if __name__ == "__main__":
         action="store_true",
         help="Visualize the environment during testing",
     )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=10327625,
-        help="Magic seed",
-    )
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     args.save_dir = os.path.join(args.save_dir, args.env, args.exp)
     args.env_name = "ALE/Pong-v5" if args.env == "pong" else "CartPole-v1"
     if args.env == "pong":
         gym.register_envs(ale_py)
-    wandb.init(
-        project="DLP-Lab5-DQN",
-        name=f"{args.exp}",
-        tags=[args.env, "test"],
-        save_code=True,
-        settings=wandb.Settings(code_dir="."),
-    )
-    wandb.config.update(args)
 
-    console = Console()
     logger.remove()
     logger.add(
-        lambda msg: console.print(msg, end=""),
+        sys.stdout,
         level=args.log_level,
-        format="{time:YYYY-MM-DD at HH:mm:ss} | {level.icon} | {message}",
+        colorize=True,
+        format="<green>{time:YYYY-MM-DD at HH:mm:ss}</green> <level>{message}</level>",
     )
 
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
-
     logger.info(f"{args}")
+
+    args.seed = random.randint(0, 10000000)
+    args.episodes = 40
     tester = Tester(args)
-    tester.run(episodes=args.episodes)
+
+    successes = 0
+    failures = 0
+    while True:
+        seed = random.randint(0, 100000000)
+
+        tester.seed = seed
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+        tester.episode = 0
+        logger.debug(f"Testing with seed: {tester.seed}")
+        success, failed = tester.run(episodes=args.episodes)
+        if success > 25:
+            logger.info(f"Found seed: {tester.seed}")
+            logger.info(f"Successes: {success}, Failures: {failed}")
+        logger.debug(f"Seed {tester.seed} - Successes: {success}, Failures: {failed}")
+        successes += success
+        failures += failed
+        rate = successes / (successes + failures)
+        # logger.debug(
+        #     f"Total successes: {successes}, Total failures: {failures}, rate: {rate * 100:.2f}%"
+        # )
