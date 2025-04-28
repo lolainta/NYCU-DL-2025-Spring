@@ -54,7 +54,7 @@ The Trainer class is responsible for training the agent.
 It handles the training loop, including collecting experiences, updating the model, and logging results.
 The trainer class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
 The implementation of the \texttt{Trainer} class is as follows:
-\inputminted[firstline=18,lastline=170]{python}{../trainer.py}
+\inputminted[firstline=18,lastline=173]{python}{../trainer.py}
 
 \subsubsection{Tester Class}
 
@@ -143,3 +143,14 @@ The multi-step reward is implemented in the \texttt{PrioritizedReplayBuffer} cla
 \inputminted[firstline=20, lastline=82,highlightlines={53-60}]{python}{../dqn.py}
 
 \subsection{Weight \& Biases Using Techniques}
+
+Since we are required to complete 3 different tasks in two different environments, I used the \href{https://wandb.ai/site}{Weight \& Biases} (WandB) library to track the training process and visualize the results.
+To categorize the results, I used the \texttt{wandb.init} method to create a new run for each task and add tags to the run.
+This allows me to easily filter and compare the results of different runs in the WandB dashboard for the same task.
+I also used set argument \texttt{save\_code} to \texttt{True} and setting the \texttt{code\_dir} argument to the whole current directory to save all \texttt{.py} files in the WandB run.
+This allows me to easily reproduce the results and compare the code used for different runs.
+
+The implementation of the WandB initialization in the \texttt{Trainer} class is as follows:
+\inputminted[firstline=238,lastline=245,highlightlines={241-243,245}]{python}{../trainer.py}
+And the implementation of the WandB initialization in the \texttt{Tester} class is as follows:
+\inputminted[firstline=154,lastline=161,highlightlines={157-159,161}]{python}{../tester.py}

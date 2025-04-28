@@ -47,6 +47,15 @@ The training curves for the task 1 are shown in Figure \ref{fig:cartpole-trainin
     \label{fig:cartpole-training-curve}
 \end{figure}
 
+\subsubsection{Testing Commands}
+
+We can test the trained agent using the following command:
+\begin{minted}{bash}
+     python3 tester.py --env cartpole --exp report --model ./results/cartpole/report/best_model.pt --episodes 30
+\end{minted}
+
+This can achieve the score over than $480$ in 30 consecutive episodes.
+
 \subsection{Task 2: \pong with vanilla DQN}
 
 \subsubsection{Training Commands}
@@ -80,6 +89,8 @@ The hyperparameters values are as follows:
 \end{itemize}
 
 \subsubsection{Training Curves}
+
+\subsubsection{Testing Commands}
 
 \subsection{Task 3: \pong with DQN Variants}
 
@@ -132,7 +143,9 @@ By the way, this evaluation score during the training process is the average sco
 After inspecting the special snapshot, I found that the agent can get the score of $21$ in some episodes by moving to a specific position and hitting the ball at the right time without moving the paddle again.
 However, in the other episodes, the agent can not hit any ball and the score is $-21$.
 
-However, during the testing process, if we use this snapshot to test the agent in the \pong environment, the agent can get the score of $21$ in 30 consecutive episodes by the following testing command:
+\subsubsection{Testing Commands}
+
+Therefore, during the testing process, if we use this snapshot to test the agent in the \pong environment, the agent can get the score of $21$ in 30 consecutive episodes by the following testing command:
 \begin{minted}{bash}
      python3 tester.py --env pong --exp task3 --model ./results/pong/task3/best_model.pt --seed 92439410 --episodes 30
 \end{minted}
@@ -140,6 +153,7 @@ However, during the testing process, if we use this snapshot to test the agent i
 The command specifies the environment as \pong, the experiment name as \texttt{task3}, and the \texttt{----model} flag indicates that the agent should use the model saved in the \texttt{best\_model.pt} file, you should change the path to your own path.
 The \texttt{----seed} flag specifies the first random seed for the environment, and the following seed for the environment will be $seed + \text{episode\_number}$. That is to say, the first episode will use the seed $92439410$, the second episode will use the seed $92439411$, and so on.
 The \texttt{----episodes} flag specifies the number of evaluation episodes, which is set to $30$ in this case.
+
 
 
 \subsection{Analyze each Technique}
