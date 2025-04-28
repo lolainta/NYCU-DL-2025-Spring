@@ -149,14 +149,14 @@ if __name__ == "__main__":
 
     logger.info(f"{args}")
 
-    args.seed = random.randint(0, 10000000)
+    args.seed = random.randint(0, 2147482647)
     args.episodes = 40
     tester = Tester(args)
 
     successes = 0
     failures = 0
     while True:
-        seed = random.randint(0, 100000000)
+        seed = random.randint(0, 2147483647)
 
         tester.seed = seed
         random.seed(seed)
