@@ -67,10 +67,6 @@ class Tester:
             for ep in range(episodes):
                 self.episode = ep
                 eval_reward = self.evaluate(seed=self.seed + ep)
-                with open(
-                    os.path.join(self.save_dir, f"rewards_{self.seed}.txt"), "a"
-                ) as f:
-                    f.write(f"{self.episode} {eval_reward}\n")
                 logger.info(f"Episode {ep} - Test Reward: {eval_reward:.2f}")
                 total_reward += eval_reward
                 wandb.log(
