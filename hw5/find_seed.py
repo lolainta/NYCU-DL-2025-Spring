@@ -54,17 +54,17 @@ class Tester:
 
     def run(self, episodes):
         success, failed = 0, 0
-        total_reward = 0
+        total_reward: float = 0
         for ep in range(episodes):
             self.episode = ep
             # eval_reward = self.evaluate(seed=random.randint(0, 10000))
-            eval_reward = self.evaluate(seed=self.seed + ep)
-            if eval_reward < 19:
+            eval_reward: float = self.evaluate(seed=self.seed + ep)
+            if eval_reward < 0:
                 failed += 1
             else:
                 success += 1
-            if eval_reward < 19:
-                return success, failed
+            if eval_reward < 0:
+                return success, failed, eval_reward
             with open(
                 os.path.join(self.save_dir, f"rewards_{self.seed}.txt"), "a"
             ) as f:
@@ -73,15 +73,15 @@ class Tester:
             total_reward += eval_reward
         total_reward /= episodes
         logger.info(f"Average Test Reward: {total_reward}")
-        return success, failed
+        return success, failed, total_reward
 
-    def evaluate(self, seed):
+    def evaluate(self, seed) -> float:
         obs, _ = self.env.reset(seed=seed)
         state = self.preprocessor.reset(obs)
         frames = [self.env.render()]
 
         done = False
-        total_reward = 0
+        total_reward: float = 0.0
 
         while not done:
             action = self.agent.select_action(state, 0.0)
@@ -95,7 +95,7 @@ class Tester:
             gif_path = os.path.join(self.save_dir, "gifs", f"test_{self.episode}.gif")
             imageio.mimsave(gif_path, frames, fps=30)  # type: ignore
             logger.info(f"Saved test episode frames to {gif_path}")
-        return total_reward
+        return float(total_reward)
 
 
 if __name__ == "__main__":
@@ -166,14 +166,15 @@ if __name__ == "__main__":
 
         tester.episode = 0
         logger.debug(f"Testing with seed: {tester.seed}")
-        success, failed = tester.run(episodes=args.episodes)
-        if success > 25:
-            logger.info(f"Found seed: {tester.seed}")
-            logger.info(f"Successes: {success}, Failures: {failed}")
+        # success, failed, avg = tester.run(episodes=args.episodes)
+        success, failed, avg = tester.run(episodes=args.episodes)
+        if avg >= 19:
+            logger.warning(f"Found seed: {tester.seed}")
+            logger.warning(f"Successes: {success}, Failures: {failed}, Avg: {avg}")
         logger.debug(f"Seed {tester.seed} - Successes: {success}, Failures: {failed}")
         successes += success
         failures += failed
         rate = successes / (successes + failures)
-        # logger.debug(
-        #     f"Total successes: {successes}, Total failures: {failures}, rate: {rate * 100:.2f}%"
-        # )
+        logger.debug(
+            f"Total successes: {successes}, Total failures: {failures}, rate: {rate * 100:.2f}%"
+        )
