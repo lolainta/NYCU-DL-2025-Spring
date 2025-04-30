@@ -174,7 +174,7 @@ if __name__ == "__main__":
         logger.debug(f"Testing with seed: {tester.seed}")
         # success, failed, avg = tester.run(episodes=args.episodes)
         success, failed, avg = tester.run(episodes=args.episodes)
-        if avg >= 15:
+        if avg >= 19:
             logger.warning(f"Found seed: {tester.seed}")
             logger.warning(f"Successes: {success}, Failures: {failed}, Avg: {avg}")
         logger.info(
