@@ -46,7 +46,7 @@ The agent also maintains a replay buffer, which stores the agent's experiences f
 The replay buffer is implemented using the the \texttt{PrioritizedReplayBuffer} class, which will be discussed in Section \ref{sec:per}.
 
 The implementation of the \texttt{DQNAgent} class is as follows:
-\inputminted[firstline=85]{python}{../dqn.py}
+\inputminted[firstline=85,highlightlines={102,136}]{python}{../dqn.py}
 
 \subsubsection{Trainer Class}
 
@@ -54,7 +54,7 @@ The Trainer class is responsible for training the agent.
 It handles the training loop, including collecting experiences, updating the model, and logging results.
 The trainer class is also responsible for loading the environment and the agent. It will handle agent's actions and interact it with the environment.
 The implementation of the \texttt{Trainer} class is as follows:
-\inputminted[firstline=18,lastline=173]{python}{../trainer.py}
+\inputminted[firstline=18,lastline=176,highlightlines={44,60,123}]{python}{../trainer.py}
 
 \subsubsection{Tester Class}
 
@@ -63,7 +63,7 @@ It handles the testing loop, it is similar to the trainer class, but it does not
 The tester class is also responsible for loading the environment and the agent.
 It will handle agent's actions and interact it with the environment.
 The implementation of the \texttt{Tester} class is as follows:
-\inputminted[firstline=19,lastline=102]{python}{../tester.py}
+\inputminted[firstline=19,lastline=102,highlightlines={39,82}]{python}{../tester.py}
 
 \subsection{Hyperparameters}
 
@@ -114,7 +114,7 @@ The implementation of the Bellman equation in the DQN algorithm is done in the \
 In this method, the Q-values are updated based on the agent's experiences, ensuring that the learning process aligns with the principles of reinforcement learning.
 The implementation of the \texttt{learn} method is as follows:
 
-\inputminted[firstline=135, highlightlines={152-159}]{python}{../dqn.py}
+\inputminted[firstline=136, highlightlines={155-158}]{python}{../dqn.py}
 
 \subsection{Prioritized Experience Replay}
 \label{sec:per}
@@ -140,17 +140,31 @@ The multi-step reward is used to update the Q-values in the same way as the stan
 This allows the agent to learn from longer-term dependencies and can lead to faster convergence and better performance.
 The multi-step reward is implemented in the \texttt{PrioritizedReplayBuffer} class.
 
-\inputminted[firstline=20, lastline=82,highlightlines={53-60}]{python}{../dqn.py}
+\inputminted[firstline=20, lastline=82,highlightlines={43,53-60,72-75}]{python}{../dqn.py}
 
 \subsection{Weight \& Biases Using Techniques}
 
 Since we are required to complete 3 different tasks in two different environments, I used the \href{https://wandb.ai/site}{Weight \& Biases} (WandB) library to track the training process and visualize the results.
+
+\subsubsection{Categorizing the Results}
 To categorize the results, I used the \texttt{wandb.init} method to create a new run for each task and add tags to the run.
 This allows me to easily filter and compare the results of different runs in the WandB dashboard for the same task.
+
+\subsubsection{Snapshotting the Code}
 I also used set argument \texttt{save\_code} to \texttt{True} and setting the \texttt{code\_dir} argument to the whole current directory to save all \texttt{.py} files in the WandB run.
 This allows me to easily reproduce the results and compare the code used for different runs.
 
+\subsubsection{Hyperparameter Tuning}
+I used the \texttt{wandb.config} method to define the hyperparameters for each run.
+This allows me to easily track and compare the hyperparameters used for different runs in the WandB dashboard.
+
+\subsubsection{Result Plot Generation}
+I used the \texttt{wandb.log} method to log the results of each run.
+This allows me to easily visualize the results in the WandB dashboard and compare the performance of different runs.
+This also allows me to easily export the plots and use them in the report.
+
+\subsubsection{WandB Initialization}
 The implementation of the WandB initialization in the \texttt{Trainer} class is as follows:
-\inputminted[firstline=238,lastline=245,highlightlines={241-243,245}]{python}{../trainer.py}
+\inputminted[firstline=241,lastline=248,highlightlines={244-246,248}]{python}{../trainer.py}
 And the implementation of the WandB initialization in the \texttt{Tester} class is as follows:
-\inputminted[firstline=154,lastline=161,highlightlines={157-159,161}]{python}{../tester.py}
+\inputminted[firstline=152,lastline=158,highlightlines={154-156,158}]{python}{../tester.py}
