@@ -84,7 +84,7 @@ class PrioritizedReplayBuffer:
 
 class DQNAgent:
     def __init__(self, env, args):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = args.device
         logger.info(f"Using device: {self.device}")
 
         match env.spec.id:
@@ -113,6 +113,7 @@ class DQNAgent:
             args.memory_size, args.per_alpha, args.per_beta
         )
 
+        self.vanilla = args.vanilla
         self.target_net = self.DQN(self.input_state, self.num_actions).to(self.device)
         self.target_net.load_state_dict(self.q_net.state_dict())
         self.target_net.eval()
@@ -150,9 +151,14 @@ class DQNAgent:
         dones = torch.tensor(dones, dtype=torch.float32).to(self.device)
 
         with torch.no_grad():
-            next_q_values = self.target_net(next_states).max(1)[0]
-            target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
-            # target_q_values = rewards + self.gamma * next_q_values
+            if self.vanilla:
+                target_q_values = (
+                    rewards
+                    + (1 - dones) * self.gamma * self.target_net(next_states).max(1)[0]
+                )
+            else:
+                next_q_values = self.target_net(next_states).max(1)[0]
+                target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
         q_values = self.q_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
 
         td_errors = target_q_values - q_values

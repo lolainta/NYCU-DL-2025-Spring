@@ -117,6 +117,7 @@ if __name__ == "__main__":
         default="test",
         help="Experiment name",
     )
+    parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
     parser.add_argument("--save-dir", type=str, default="./results")
     parser.add_argument(
         "--model-path", type=str, required=True, help="Path to trained .pt model"

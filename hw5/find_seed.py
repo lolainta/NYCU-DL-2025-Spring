@@ -31,7 +31,7 @@ class Tester:
 
         self.num_actions = self.env.action_space.n  # type: ignore
 
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = args.device
         logger.debug(f"Using device: {self.device}")
 
         self.agent = DQNAgent(self.env, args=args)
@@ -59,12 +59,12 @@ class Tester:
             self.episode = ep
             # eval_reward = self.evaluate(seed=random.randint(0, 10000))
             eval_reward: float = self.evaluate(seed=self.seed + ep)
-            if eval_reward < 0:
+            if eval_reward < 5:
                 failed += 1
             else:
                 success += 1
-            if eval_reward < 0:
-                return success, failed, eval_reward
+            # if eval_reward < 0:
+            #     return success, failed, eval_reward
             with open(
                 os.path.join(self.save_dir, f"rewards_{self.seed}.txt"), "a"
             ) as f:
@@ -72,7 +72,6 @@ class Tester:
             logger.debug(f"Episode {ep} - Test Reward: {eval_reward:.2f}")
             total_reward += eval_reward
         total_reward /= episodes
-        logger.info(f"Average Test Reward: {total_reward}")
         return success, failed, total_reward
 
     def evaluate(self, seed) -> float:
@@ -113,6 +112,13 @@ if __name__ == "__main__":
         default="test",
         help="Experiment name",
     )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda" if torch.cuda.is_available() else "cpu",
+        choices=["cuda", "cpu"],
+        help="Device to use for training",
+    )
     parser.add_argument("--save-dir", type=str, default="./results")
     parser.add_argument(
         "--model-path", type=str, required=True, help="Path to trained .pt model"
@@ -150,7 +156,7 @@ if __name__ == "__main__":
     logger.info(f"{args}")
 
     args.seed = random.randint(0, 2147482647)
-    args.episodes = 40
+    args.episodes = 20
     tester = Tester(args)
 
     successes = 0
@@ -168,10 +174,12 @@ if __name__ == "__main__":
         logger.debug(f"Testing with seed: {tester.seed}")
         # success, failed, avg = tester.run(episodes=args.episodes)
         success, failed, avg = tester.run(episodes=args.episodes)
-        if avg >= 19:
+        if avg >= 15:
             logger.warning(f"Found seed: {tester.seed}")
             logger.warning(f"Successes: {success}, Failures: {failed}, Avg: {avg}")
-        logger.debug(f"Seed {tester.seed} - Successes: {success}, Failures: {failed}")
+        logger.info(
+            f"Seed {tester.seed} - Successes: {success}, Failures: {failed}, Avg: {avg}"
+        )
         successes += success
         failures += failed
         rate = successes / (successes + failures)

@@ -29,6 +29,9 @@ class Trainer:
                 noop_max=30,
             )
             self.env = FrameStackObservation(self.env, 4)
+        self.env.action_space.seed(args.seed)
+        self.env.observation_space.seed(args.seed)
+        self.env.reset(seed=args.seed)
 
         self.num_actions = self.env.action_space.n  # type: ignore
         logger.info(f"Environment: {self.env.spec.id}")  # type: ignore
@@ -183,6 +186,7 @@ if __name__ == "__main__":
         help="Environment name",
     )
     parser.add_argument("--exp", type=str, default="exp")
+    parser.add_argument("--device", type=str, default="cuda", choices=["cuda", "cpu"])
     parser.add_argument("--save-dir", type=str, default="./results")
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--memory-size", type=int, default=100_000)
@@ -228,7 +232,6 @@ if __name__ == "__main__":
     if args.env == "pong":
         gym.register_envs(ale_py)
     if args.vanilla:
-        args.update_period = 1
         args.learn_per_step = 1
         args.per_alpha = 0.0
         args.per_beta = 1.0
@@ -260,3 +263,4 @@ if __name__ == "__main__":
     trainer = Trainer(args)
     trainer.run(episodes=args.episodes)
     trainer.evaluate()
+    logger.info(args)
