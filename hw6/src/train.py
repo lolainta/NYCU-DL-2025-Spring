@@ -15,16 +15,14 @@ from model import ConditionalDDPM
 
 class Trainer:
     def __init__(self, args):
-        self.train_dataset = IclevrDataset(args.dataset, "train")
         self.train_loader = DataLoader(
-            self.train_dataset,
+            IclevrDataset(args.dataset, "train"),
             batch_size=args.batch_size,
             shuffle=True,
             num_workers=args.num_workers,
         )
-        self.val_dataset = IclevrDataset(args.dataset, "test")
         self.val_loader = DataLoader(
-            self.val_dataset,
+            IclevrDataset(args.dataset, "test"),
             batch_size=1,
             shuffle=False,
             num_workers=args.num_workers,
@@ -61,7 +59,9 @@ class Trainer:
         tqdm.write(f"Model saved at {path}")
 
     def train(self):
-        for epoch in trange(self.epochs, desc="Training", position=0):
+        for epoch in trange(
+            self.epochs, desc="Training", position=0, dynamic_ncols=True
+        ):
             self.epoch = epoch
             train_loss = self.train_one_epoch()
             self.writer.add_scalar("Loss/train", train_loss, epoch)
@@ -79,7 +79,13 @@ class Trainer:
         self.model.train()
         train_loss = []
         for i, (img, label) in enumerate(
-            tqdm(self.train_loader, desc=f"Epoch: {self.epoch}", leave=True, position=1)
+            tqdm(
+                self.train_loader,
+                desc=f"Epoch: {self.epoch}",
+                leave=True,
+                position=1,
+                dynamic_ncols=True,
+            )
         ):
             batch_size = img.shape[0]
             img, label = img.to(self.device), label.to(self.device)
@@ -108,7 +114,13 @@ class Trainer:
         self.model.eval()
 
         for idx, (y, label) in enumerate(
-            tqdm(self.val_loader, desc=f"Epoch: {self.epoch}", leave=True, position=1)
+            tqdm(
+                self.val_loader,
+                desc=f"Epoch: {self.epoch}",
+                leave=True,
+                position=1,
+                dynamic_ncols=True,
+            )
         ):
             tqdm.write(f"Image {idx}: {label}")
             y = y.to(self.device)
@@ -134,7 +146,7 @@ class Trainer:
             tqdm.write(f"Saved image for epoch {self.epoch}, index {i}")
 
 
-def arg_parser():
+def get_args():
     parser = ArgumentParser()
     parser.add_argument("--dataset", type=str, default="dataset")
     parser.add_argument("--device", type=str, default="cuda")
@@ -153,7 +165,7 @@ def arg_parser():
 
 
 def main():
-    args = arg_parser()
+    args = get_args()
     os.makedirs(args.save_dir, exist_ok=True)
 
     trainer = Trainer(args)
