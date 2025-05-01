@@ -60,7 +60,7 @@ class Trainer:
 
     def train(self):
         for epoch in trange(
-            self.epochs, desc="Training", position=0, dynamic_ncols=True
+            self.epochs, desc="Training", position=1, dynamic_ncols=True
         ):
             self.epoch = epoch
             train_loss = self.train_one_epoch()
@@ -83,7 +83,7 @@ class Trainer:
                 self.train_loader,
                 desc=f"Epoch: {self.epoch}",
                 leave=True,
-                position=1,
+                position=0,
                 dynamic_ncols=True,
             )
         ):
@@ -118,7 +118,7 @@ class Trainer:
                 self.val_loader,
                 desc=f"Epoch: {self.epoch}",
                 leave=True,
-                position=1,
+                position=0,
                 dynamic_ncols=True,
             )
         ):
