@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.utils import make_grid, save_image
 from tqdm import tqdm, trange
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 
@@ -24,7 +25,7 @@ class Trainer:
         self.val_dataset = IclevrDataset(args.dataset, "test")
         self.val_loader = DataLoader(
             self.val_dataset,
-            batch_size=args.batch_size,
+            batch_size=1,
             shuffle=False,
             num_workers=args.num_workers,
         )
@@ -36,13 +37,16 @@ class Trainer:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
         self.epochs = args.epochs
         self.save_dir = args.save_dir
-        self.save_freq = args.save_freq
-        self.val_freq = args.val_freq
+        self.save_ckpt_period = args.save_ckpt_period
+        self.save_img_period = args.save_img_period
         self.device = args.device
         self.writer = SummaryWriter()
 
         self.best_loss: float = float("inf")
         self.epoch = 0
+
+        os.makedirs(self.save_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.save_dir, "imgs"), exist_ok=True)
 
     def save_checkpoint(self, path):
         torch.save(
@@ -57,32 +61,26 @@ class Trainer:
         tqdm.write(f"Model saved at {path}")
 
     def train(self):
-        for epoch in trange(self.epochs):
+        for epoch in trange(self.epochs, desc="Training", position=0):
             self.epoch = epoch
             train_loss = self.train_one_epoch()
             self.writer.add_scalar("Loss/train", train_loss, epoch)
             tqdm.write(f"Epoch {epoch}, Train Loss: {train_loss}")
 
-            if epoch % self.save_freq == 0:
+            if (epoch + 1) % self.save_ckpt_period == 0:
                 self.save_checkpoint(
                     os.path.join(self.save_dir, f"model_epoch_{epoch}.pth")
                 )
-                tqdm.write(f"Model saved at epoch {epoch}")
 
-            if epoch % self.val_freq == 0:
-                val_loss = self.validate()
-                tqdm.write(f"Epoch {epoch}, Validation Loss: {val_loss}")
-                self.writer.add_scalar("Loss/validation", val_loss, epoch)
-                if val_loss < self.best_loss:
-                    self.best_loss = val_loss
-                    self.save_checkpoint(os.path.join(self.save_dir, "best_model.pth"))
-                    tqdm.write(f"Best model saved at epoch {epoch}")
+            if (epoch + 1) % self.save_img_period == 0:
+                self.save_images()
 
     def train_one_epoch(self):
         self.model.train()
         train_loss = []
-        progress_bar = tqdm(self.train_loader, desc=f"Epoch: {self.epoch}", leave=True)
-        for i, (img, label) in enumerate(progress_bar):
+        for i, (img, label) in enumerate(
+            tqdm(self.train_loader, desc=f"Epoch: {self.epoch}", leave=True, position=1)
+        ):
             batch_size = img.shape[0]
             img, label = img.to(self.device), label.to(self.device)
             noise = torch.randn_like(img)
@@ -98,7 +96,6 @@ class Trainer:
             self.optimizer.step()
 
             train_loss.append(loss.item())
-            progress_bar.set_postfix({"Loss": np.mean(train_loss)})
 
             self.writer.add_scalar(
                 "Loss/train-step", loss.item(), self.epoch * len(self.train_loader) + i
@@ -107,30 +104,34 @@ class Trainer:
         self.writer.add_scalar("Loss/epoch", np.mean(train_loss), self.epoch)
         return np.mean(train_loss)
 
-    def validate(self) -> float:
+    def save_images(self):
         self.model.eval()
-        val_loss: list[float] = []
-        progress_bar = tqdm(self.val_loader, desc="Validation", leave=True)
-        with torch.no_grad():
-            for i, (img, label) in enumerate(progress_bar):
-                img, label = img.to(self.device), label.to(self.device)
-                noise = torch.randn_like(img)
 
-                timesteps = (
-                    torch.randint(0, 1000, (img.shape[0],)).long().to(self.device)
-                )
-                noisy_x = self.noise_scheduler.add_noise(img, noise, timesteps)  # type: ignore
-                output = self.model(noisy_x, timesteps, label)
-                loss = self.criteria(output, noise)
-                val_loss.append(loss.item())
-                progress_bar.set_postfix({"Loss": np.mean(val_loss)})
-                self.writer.add_scalar(
-                    "Loss/validation-step",
-                    loss.item(),
-                    self.epoch * len(self.val_loader) + i,
-                )
-        assert len(val_loss) > 0, "Validation loss is empty"
-        return sum(val_loss) / len(val_loss)
+        for idx, (y, label) in enumerate(
+            tqdm(self.val_loader, desc=f"Epoch: {self.epoch}", leave=True, position=1)
+        ):
+            tqdm.write(f"Image {idx}: {label}")
+            y = y.to(self.device)
+            x = torch.randn(1, 3, 64, 64).to(self.device)
+            denoising_result = []
+            for i, t in enumerate(self.noise_scheduler.timesteps):
+                with torch.no_grad():
+                    residual = self.model(x, t, y)
+
+                x = self.noise_scheduler.step(residual, t, x).prev_sample  # type: ignore
+                if i % (len(self.noise_scheduler.timesteps) // 10) == 0:
+                    denoising_result.append(x.squeeze(0))
+
+            denoising_result.append(x.squeeze(0))
+            denoising_result = torch.stack(denoising_result)
+            row_image = make_grid(
+                (denoising_result + 1) / 2, nrow=denoising_result.shape[0], pad_value=0
+            )
+            save_image(
+                row_image,
+                os.path.join(self.save_dir, "imgs", f"ep{self.epoch}_{idx}.png"),
+            )
+            tqdm.write(f"Saved image for epoch {self.epoch}, index {i}")
 
 
 def arg_parser():
@@ -145,8 +146,8 @@ def arg_parser():
     parser.add_argument("--num_workers", type=int, default=20)
 
     parser.add_argument("--save_dir", type=str, default="checkpoints")
-    parser.add_argument("--save_freq", type=int, default=10)
-    parser.add_argument("--val_freq", type=int, default=10)
+    parser.add_argument("--save_ckpt_period", type=int, default=10)
+    parser.add_argument("--save_img_period", type=int, default=10)
     args = parser.parse_args()
     return args
 
