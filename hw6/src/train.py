@@ -122,7 +122,6 @@ class Trainer:
                 dynamic_ncols=True,
             )
         ):
-            tqdm.write(f"Image {idx}: {label}")
             y = y.to(self.device)
             x = torch.randn(1, 3, 64, 64).to(self.device)
             denoising_result = []
@@ -143,7 +142,7 @@ class Trainer:
                 row_image,
                 os.path.join(self.save_dir, "imgs", f"ep{self.epoch}_{idx}.png"),
             )
-            tqdm.write(f"Saved image for epoch {self.epoch}, index {i}")
+            tqdm.write(f"Saved image {idx} for epoch {self.epoch}, label {label}")
 
 
 def get_args():
