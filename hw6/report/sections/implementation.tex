@@ -1,2 +1,80 @@
 \section{Implementation Details}
 \label{sec:implementation}
+
+For this homework, we implemented a conditional Denoising Diffusion Probabilistic Model (DDPM) using \href{https://pytorch.org/}{PyTorch}.
+The model is designed to generate images based on color-shape phrases, such as "red sphere" or "yellow cube". The implementation consists of several key components, including the model architecture, training process, and evaluation metrics.
+
+I modulized the code into several files to improve readability and maintainability. The main components of the implementation are as follows:
+\begin{itemize}
+    \item \texttt{model.py}: This file contains the implementation of the conditional DDPM model. Most of the model architecture is using Hugging Face Diffusers library \cite{HuggingFace}, which provides a high-level interface for building and training diffusion models.
+    \item \texttt{dataset.py}: This file defines the dataset class for loading and preprocessing the training data, including color-shape phrases and corresponding images.
+    \item \texttt{train.py}: This file contains the training loop, including the optimization process and logging of training metrics.
+    \item \texttt{test.py}: This file implements the evaluation process, including generating images from the trained model and evaluating the generated image using the pretrained ResNet-18 classifier provided by the TA.
+\end{itemize}
+
+I will provide a brief overview of each component in the following sections.
+
+\subsection{Model Architecture}
+\label{sec:model_architecture}
+The model architecture is based on a U-Net structure, which is commonly used in image generation tasks.
+The U-Net consists of an encoder-decoder structure with skip connections, allowing the model to capture both local and global features in the image.
+
+Since the color-shape phrase (label) is a limited set of words, I used one-hot encoding to represent the phrases. The one-hot encoded vector is then using a linear layer to project it into a higher-dimensional space, which is then provided as an additional input to the U-Net model.
+
+When dealing with higher-resolution inputs it is reasonable to use more down and up-blocks, and keep the attention layers only at the lowest resolution (bottom) layers to reduce memory usage.
+However, in this homework, I used a smaller model with only 6 down and up-blocks to keep the training time reasonable and also get good results.
+
+The implementation of the U-Net model is based on the Hugging Face Diffusers library, which provides a high-level interface for building and training diffusion models. The implementation of the U-Net model is as follows:
+
+\inputminted[firstline=5]{python}{../src/model.py}
+
+
+
+\subsection{Training Process}
+\label{sec:training_process}
+
+The U-Net model is trained using a denoising diffusion process, where the model learns to predict the noise added to the image at each time step. The training process involves optimizing the model parameters using a combination of mean squared error (MSE) loss.
+
+The training loop consists of the following steps:
+\begin{itemize}
+    \item Load a batch of images and corresponding color-shape phrases from the dataset.
+    \item For each image, add Gaussian noise to the image at a random time step.
+    \item Pass the noisy image and the one-hot encoded phrase through the U-Net model to predict the noise.
+    \item Compute the loss between the predicted noise and the actual noise added to the image.
+    \item Backpropagate the loss and update the model parameters using an optimizer (AdamW).
+\end{itemize}
+
+The training process is implemented in the \texttt{train.py} file, which contains the training loop and logging of training metrics. The implementation of the training loop is as follows:
+\inputminted[firstline=16,lastline=138,highlightlines=78-111]{python}{../src/train.py}
+
+\subsection{Evaluation Process}
+\label{sec:evaluation_process}
+
+The evaluation process involves generating images from the trained model and evaluating the generated images using a pretrained ResNet-18 classifier. The evaluation process consists of the following steps:
+\begin{itemize}
+    \item Load the trained model and the pretrained ResNet-18 classifier.
+    \item Generate images from the trained model using a set of color-shape phrases.
+    \item Evaluate the generated images using the pretrained ResNet-18 classifier to compute the accuracy of the generated images.
+    \item Save the generated images and their corresponding accuracy scores.
+\end{itemize}
+
+The evaluation process is implemented in the \texttt{test.py} file, which contains the evaluation loop and logging of evaluation metrics. The implementation of the evaluation loop is as follows:
+\inputminted[firstline=15,lastline=97,highlightlines={31,34,56-97}]{python}{../src/test.py}
+
+\subsection{Hyperparameters}
+\label{sec:hyperparameters}
+The hyperparameters used in the training process are as follows:
+\begin{itemize}
+    \item \texttt{batch\_size}: 32
+    \item \texttt{learning\_rate}: 1e-4
+    \item \texttt{epochs}: 10
+    \item \texttt{num\_steps}: 1000
+\end{itemize}
+
+\subsection{Dataset}
+\label{sec:dataset}
+
+The dataset used for training the model is the \texttt{CLEVR} dataset, which contains 3D shapes and their corresponding color-shape phrases.
+I used PyTorch's \texttt{DataLoader} class to load the dataset in batches and apply necessary transformations, such as resizing and normalization.
+The dataset class is implemented in the \texttt{dataset.py} file, which defines the dataset class for loading and preprocessing the training data. The implementation of the dataset class is as follows:
+\inputminted[firstline=9, lastline=64]{python}{../src/dataset.py}
