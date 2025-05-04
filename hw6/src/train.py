@@ -30,7 +30,8 @@ class Trainer:
 
         self.criteria = nn.MSELoss()
         self.model = ConditionalDDPM().to(args.device)
-        self.noise_scheduler = DDPMScheduler(num_train_timesteps=1000)
+        self.noise_scheduler = DDPMScheduler(num_train_timesteps=args.time_steps)
+        self.time_steps = args.time_steps
 
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
         self.epochs = args.epochs
@@ -53,15 +54,14 @@ class Trainer:
                 "best_loss": self.best_loss,
                 "model": self.model.state_dict(),
                 "optimizer": self.optimizer.state_dict(),
+                "time_steps": self.time_steps,
             },
             path,
         )
         tqdm.write(f"Model saved at {path}")
 
     def train(self):
-        for epoch in trange(
-            self.epochs, desc="Training", position=1, dynamic_ncols=True
-        ):
+        for epoch in trange(self.epochs, desc="Training", dynamic_ncols=True):
             self.epoch = epoch
             train_loss = self.train_one_epoch()
             self.writer.add_scalar("Loss/train", train_loss, epoch)
@@ -82,8 +82,6 @@ class Trainer:
             tqdm(
                 self.train_loader,
                 desc=f"Epoch: {self.epoch}",
-                leave=True,
-                position=0,
                 dynamic_ncols=True,
             )
         ):
@@ -91,7 +89,9 @@ class Trainer:
             img, label = img.to(self.device), label.to(self.device)
             noise = torch.randn_like(img)
 
-            timesteps = torch.randint(0, 1000, (batch_size,)).long().to(self.device)
+            timesteps = (
+                torch.randint(0, self.time_steps, (batch_size,)).long().to(self.device)
+            )
             noisy_x = self.noise_scheduler.add_noise(img, noise, timesteps)  # type: ignore
             output = self.model(noisy_x, timesteps, label)
 
@@ -114,13 +114,7 @@ class Trainer:
         self.model.eval()
 
         for idx, (y, label) in enumerate(
-            tqdm(
-                self.val_loader,
-                desc=f"Epoch: {self.epoch}",
-                leave=True,
-                position=0,
-                dynamic_ncols=True,
-            )
+            tqdm(self.val_loader, desc=f"Epoch: {self.epoch}", dynamic_ncols=True)
         ):
             y = y.to(self.device)
             x = torch.randn(1, 3, 64, 64).to(self.device)
@@ -140,9 +134,8 @@ class Trainer:
             )
             save_image(
                 row_image,
-                os.path.join(self.save_dir, "imgs", f"ep{self.epoch}_{idx}.png"),
+                os.path.join(self.save_dir, "imgs", f"ep{self.epoch}", f"{idx}.png"),
             )
-            tqdm.write(f"Saved image {idx} for epoch {self.epoch}, label {label}")
 
 
 def get_args():
@@ -155,10 +148,11 @@ def get_args():
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--beta_schedule", type=str, default="squaredcos_cap_v2")
     parser.add_argument("--num_workers", type=int, default=20)
+    parser.add_argument("--time_steps", type=int, default=1000)
 
     parser.add_argument("--save_dir", type=str, default="checkpoints")
     parser.add_argument("--save_ckpt_period", type=int, default=10)
-    parser.add_argument("--save_img_period", type=int, default=10)
+    parser.add_argument("--save_img_period", type=int, default=30)
     args = parser.parse_args()
     return args
 

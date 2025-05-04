@@ -16,21 +16,15 @@ class ConditionalDDPM(nn.Module):
                 channel,
                 channel * 2,
                 channel * 2,
-                channel * 4,
-                channel * 4,
             ],  # type: ignore
             down_block_types=[
                 "DownBlock2D",
                 "DownBlock2D",
                 "DownBlock2D",
-                "DownBlock2D",
                 "AttnDownBlock2D",
-                "DownBlock2D",
             ],  # type: ignore
             up_block_types=[
-                "UpBlock2D",
                 "AttnUpBlock2D",
-                "UpBlock2D",
                 "UpBlock2D",
                 "UpBlock2D",
                 "UpBlock2D",

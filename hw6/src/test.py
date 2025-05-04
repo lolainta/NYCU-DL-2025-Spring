@@ -26,6 +26,13 @@ class Tester:
             shuffle=False,
             num_workers=args.num_workers,
         )
+        self.manual_test_loader = DataLoader(
+            IclevrDataset(args.dataset, "manual_test"),
+            batch_size=1,
+            shuffle=False,
+            num_workers=args.num_workers,
+        )
+
         self.device = args.device
         self.model = ConditionalDDPM().to(self.device)
         self.model.load_state_dict(torch.load(args.ckpt)["model"])
@@ -33,12 +40,14 @@ class Tester:
 
         self.eval_model = evaluation_model()
 
-        self.noise_scheduler = DDPMScheduler(num_train_timesteps=1000)
+        self.time_steps = torch.load(args.ckpt)["time_steps"]
+        self.noise_scheduler = DDPMScheduler(num_train_timesteps=self.time_steps)
 
         self.save_dir = args.save_dir
         os.makedirs(self.save_dir, exist_ok=True)
         os.makedirs(os.path.join(self.save_dir, "test"), exist_ok=True)
         os.makedirs(os.path.join(self.save_dir, "new_test"), exist_ok=True)
+        os.makedirs(os.path.join(self.save_dir, "manual_test"), exist_ok=True)
 
     def test(self):
         test_acc = self.inference(
@@ -49,8 +58,13 @@ class Tester:
             self.new_test_loader,
             os.path.join(self.save_dir, "new_test"),
         )
+        manual_test_acc = self.inference(
+            self.manual_test_loader,
+            os.path.join(self.save_dir, "manual_test"),
+        )
         print(f"Test accuracy: {test_acc:.4f}")
         print(f"New test accuracy: {new_test_acc:.4f}")
+        print(f"Manual test accuracy: {manual_test_acc:.4f}")
 
     def inference(self, loader, save_dir):
         all_results = []
@@ -64,7 +78,7 @@ class Tester:
                     residual = self.model(x, t, y)
 
                 x = self.noise_scheduler.step(residual, t, x).prev_sample  # type: ignore
-                if i % (1000 // 10) == 0:
+                if i % (self.time_steps // 10) == 0:
                     denoising_results.append(x.squeeze(0))
             acc = self.eval_model.eval(x, y)
             tqdm.write(f"image: {idx}, label: {label}, accuracy: {acc:.4f}")

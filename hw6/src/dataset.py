@@ -24,7 +24,8 @@ class IclevrDataset(Dataset):
             "train",
             "test",
             "new_test",
-        ], f"mode {mode} not in [train, test, new_test]"
+            "manual_test",
+        ], f"mode {mode} not in [train, test, new_test, manual_test]"
         assert os.path.exists(root), f"{root} does not exist"
 
         self.root = root
