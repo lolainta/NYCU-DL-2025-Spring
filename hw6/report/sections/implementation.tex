@@ -28,8 +28,6 @@ The implementation of the U-Net model is based on the Hugging Face Diffusers lib
 
 \inputminted[firstline=5]{python}{../src/model.py}
 
-
-
 \subsection{Training Process}
 \label{sec:training_process}
 
@@ -45,7 +43,7 @@ The training loop consists of the following steps:
 \end{itemize}
 
 The training process is implemented in the \texttt{train.py} file, which contains the training loop and logging of training metrics. The implementation of the training loop is as follows:
-\inputminted[firstline=16,lastline=138,highlightlines=78-111]{python}{../src/train.py}
+\inputminted[firstline=16,lastline=138,highlightlines=78-114]{python}{../src/train.py}
 
 \subsection{Evaluation Process}
 \label{sec:evaluation_process}
@@ -59,7 +57,7 @@ The evaluation process involves generating images from the trained model and eva
 \end{itemize}
 
 The evaluation process is implemented in the \texttt{test.py} file, which contains the evaluation loop and logging of evaluation metrics. The implementation of the evaluation loop is as follows:
-\inputminted[firstline=15,lastline=97,highlightlines={31,34,56-97}]{python}{../src/test.py}
+\inputminted[firstline=15,lastline=110,highlightlines={37,38,41,69-110}]{python}{../src/test.py}
 
 \subsection{Hyperparameters}
 \label{sec:hyperparameters}
@@ -77,4 +75,4 @@ The hyperparameters used in the training process are as follows:
 The dataset used for training the model is the \texttt{CLEVR} dataset, which contains 3D shapes and their corresponding color-shape phrases.
 I used PyTorch's \texttt{DataLoader} class to load the dataset in batches and apply necessary transformations, such as resizing and normalization.
 The dataset class is implemented in the \texttt{dataset.py} file, which defines the dataset class for loading and preprocessing the training data. The implementation of the dataset class is as follows:
-\inputminted[firstline=9, lastline=64]{python}{../src/dataset.py}
+\inputminted[firstline=9, lastline=65]{python}{../src/dataset.py}
