@@ -107,6 +107,9 @@ class Trainer:
                 "Loss/train-step", loss.item(), self.epoch * len(self.train_loader) + i
             )
 
+        os.makedirs(
+            os.path.join(self.save_dir, "imgs", f"ep{self.epoch}"), exist_ok=True
+        )
         self.writer.add_scalar("Loss/epoch", np.mean(train_loss), self.epoch)
         return np.mean(train_loss)
 
