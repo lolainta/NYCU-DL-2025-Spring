@@ -31,18 +31,33 @@ class Actor(nn.Module):
     def __init__(self, in_dim: int, out_dim: int):
         """Initialize."""
         super(Actor, self).__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
 
-        ############TODO#############
-        # Remeber to initialize the layer weights
+        # Define the network layers
+        self.model = nn.Sequential(
+            nn.Linear(in_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+        )
+        self.mean_layer = nn.Linear(128, out_dim)
+        self.log_std_layer = nn.Linear(128, out_dim)
 
-        #############################
+        # Initialize weights
+        initialize_uniformly(self.mean_layer)
+        initialize_uniformly(self.log_std_layer)
 
-    def forward(self, state: torch.Tensor) -> torch.Tensor:
+    def forward(self, state: torch.Tensor) -> Tuple[torch.Tensor, Normal]:
         """Forward method implementation."""
+        x = self.model(state)
+        mean = self.mean_layer(x)
+        log_std = self.log_std_layer(x)
+        std = log_std.exp()
 
-        ############TODO#############
-
-        #############################
+        # Create a Normal distribution for the policy
+        dist = Normal(mean, std)
+        action = dist.sample()
 
         return action, dist
 
@@ -51,19 +66,20 @@ class Critic(nn.Module):
     def __init__(self, in_dim: int):
         """Initialize."""
         super(Critic, self).__init__()
+        self.in_dim = in_dim
 
-        ############TODO#############
-        # Remeber to initialize the layer weights
-
-        #############################
+        # Define the network layers
+        self.model = nn.Sequential(
+            nn.Linear(in_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1),  # Output a single value (state value)
+        )
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
-
-        ############TODO#############
-
-        #############################
-
+        value = self.model(state)
         return value
 
 
@@ -100,8 +116,8 @@ class A2CAgent:
         print(self.device)
 
         # networks
-        obs_dim = env.observation_space.shape[0]
-        action_dim = env.action_space.shape[0]
+        obs_dim = env.observation_space.shape[0]  # type: ignore
+        action_dim = env.action_space.shape[0]  # type: ignore
         self.actor = Actor(obs_dim, action_dim).to(self.device)
         self.critic = Critic(obs_dim).to(self.device)
 
@@ -118,9 +134,9 @@ class A2CAgent:
         # mode: train / test
         self.is_test = False
 
-    def select_action(self, state: np.ndarray) -> np.ndarray:
+    def select_action(self, state_n: np.ndarray) -> np.ndarray:
         """Select an action from the input state."""
-        state = torch.FloatTensor(state).to(self.device)
+        state = torch.FloatTensor(state_n).to(self.device)
         action, dist = self.actor(state)
         selected_action = dist.mean if self.is_test else action
 
@@ -138,30 +154,35 @@ class A2CAgent:
         if not self.is_test:
             self.transition.extend([next_state, reward, done])
 
-        return next_state, reward, done
+        return next_state, np.float64(reward), done
 
-    def update_model(self) -> Tuple[torch.Tensor, torch.Tensor]:
+    def update_model(self) -> Tuple[float, float]:
         """Update the model by gradient descent."""
         state, log_prob, next_state, reward, done = self.transition
+
+        next_state = torch.FloatTensor(next_state).to(self.device)
+        reward = torch.FloatTensor([reward]).to(self.device)
+        done = torch.FloatTensor([done]).to(self.device)
 
         # Q_t   = r + gamma * V(s_{t+1})  if state != Terminal
         #       = r                       otherwise
         mask = 1 - done
 
-        ############TODO#############
-        # value_loss = ?
-        #############################
+        value_next = self.critic(next_state)
+        Q_t = reward + self.gamma * value_next * mask
 
-        # update value
+        value_loss = F.mse_loss(self.critic(state), Q_t.detach())
+
+        # Update value
         self.critic_optimizer.zero_grad()
         value_loss.backward()
         self.critic_optimizer.step()
 
-        # advantage = Q_t - V(s_t)
-        ############TODO#############
-        # policy_loss = ?
-        #############################
-        # update policy
+        # Advantage = Q_t - V(s_t)
+        advantage = Q_t - self.critic(state)
+        policy_loss = -log_prob * advantage.detach()
+
+        # Update policy
         self.actor_optimizer.zero_grad()
         policy_loss.backward()
         self.actor_optimizer.step()
@@ -201,7 +222,7 @@ class A2CAgent:
                 # if episode ends
                 if done:
                     scores.append(score)
-                    print(f"Episode {ep}: Total Reward = {score}")
+                    tqdm.write(f"Episode {ep}: Total Reward = {score}")
                     # W&B logging
                     wandb.log({"episode": ep, "return": score})
 
@@ -256,7 +277,9 @@ if __name__ == "__main__":
     np.random.seed(seed)
     seed_torch(seed)
     wandb.init(
-        project="DLP-Lab7-A2C-Pendulum", name=args.wandb_run_name, save_code=True
+        project="DLP-Lab7-A2C-Pendulum",
+        name=args.wandb_run_name,
+        save_code=True,
     )
 
     agent = A2CAgent(env, args)
