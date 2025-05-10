@@ -19,6 +19,8 @@ import argparse
 import wandb
 from tqdm import tqdm
 from typing import Tuple
+from datetime import datetime
+import os
 
 
 def initialize_uniformly(layer: nn.Linear, init_w: float = 3e-3):
@@ -36,29 +38,29 @@ class Actor(nn.Module):
 
         # Define the network layers
         self.model = nn.Sequential(
-            nn.Linear(in_dim, 128),
+            nn.Linear(in_dim, 64),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(64, 64),
             nn.ReLU(),
         )
-        self.mean_layer = nn.Linear(128, out_dim)
-        self.log_std_layer = nn.Linear(128, out_dim)
+        self.mean_layer = nn.Linear(64, out_dim)
+        self.log_std_layer = nn.Linear(64, out_dim)
 
         # Initialize weights
         initialize_uniformly(self.mean_layer)
         initialize_uniformly(self.log_std_layer)
+        initialize_uniformly(self.model[0])  # type: ignore
+        initialize_uniformly(self.model[2])  # type: ignore
+        # initialize_uniformly(self.model[4])  # type: ignore
 
     def forward(self, state: torch.Tensor) -> Tuple[torch.Tensor, Normal]:
         """Forward method implementation."""
         x = self.model(state)
-        mean = self.mean_layer(x)
-        log_std = self.log_std_layer(x)
-        std = log_std.exp()
-
-        # Create a Normal distribution for the policy
+        mean = torch.nn.Tanh()(self.mean_layer(x)) * 2  # Scale the mean to [-2, 2]
+        log_std = torch.nn.Softplus()(self.log_std_layer(x))  # Ensure std is positive
+        std = torch.exp(log_std)
         dist = Normal(mean, std)
         action = dist.sample()
-
         return action, dist
 
 
@@ -70,12 +72,15 @@ class Critic(nn.Module):
 
         # Define the network layers
         self.model = nn.Sequential(
-            nn.Linear(in_dim, 128),
+            nn.Linear(in_dim, 64),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(128, 1),  # Output a single value (state value)
+            nn.Linear(64, 1),
         )
+        initialize_uniformly(self.model[0])  # type: ignore
+        initialize_uniformly(self.model[2])  # type: ignore
+        initialize_uniformly(self.model[4])  # type: ignore
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         """Forward method implementation."""
@@ -103,7 +108,10 @@ class A2CAgent:
 
     def __init__(self, env: gym.Env, args):
         """Initialize."""
+        self.exp = args.exp
+        self.out_dir = args.out_dir
         self.env = env
+        self.eval_episode = args.eval_episode
         self.gamma = args.discount_factor
         self.entropy_weight = args.entropy_weight
         self.seed = args.seed
@@ -111,9 +119,7 @@ class A2CAgent:
         self.critic_lr = args.critic_lr
         self.num_episodes = args.num_episodes
 
-        # device: cpu / gpu
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(self.device)
+        self.device = args.device
 
         # networks
         obs_dim = env.observation_space.shape[0]  # type: ignore
@@ -133,6 +139,20 @@ class A2CAgent:
 
         # mode: train / test
         self.is_test = False
+        self.best_score = -np.inf
+
+    def save_model(self, path: str):
+        """Save the model."""
+        torch.save(
+            {
+                "actor": self.actor.state_dict(),
+                "critic": self.critic.state_dict(),
+                "actor_optimizer": self.actor_optimizer.state_dict(),
+                "critic_optimizer": self.critic_optimizer.state_dict(),
+                "step_count": self.total_step,
+            },
+            path,
+        )
 
     def select_action(self, state_n: np.ndarray) -> np.ndarray:
         """Select an action from the input state."""
@@ -180,7 +200,9 @@ class A2CAgent:
 
         # Advantage = Q_t - V(s_t)
         advantage = Q_t - self.critic(state)
-        policy_loss = -log_prob * advantage.detach()
+        policy_loss = (
+            -log_prob * advantage.detach()
+        ).mean() - self.entropy_weight * log_prob.mean()
 
         # Update policy
         self.actor_optimizer.zero_grad()
@@ -194,13 +216,21 @@ class A2CAgent:
         self.is_test = False
         step_count = 0
 
-        for ep in tqdm(range(1, self.num_episodes)):
+        for ep in (
+            pbar := tqdm(
+                range(1, self.num_episodes + 1),
+                dynamic_ncols=True,
+                desc=f"{self.exp} Training",
+            )
+        ):
             actor_losses, critic_losses, scores = [], [], []
-            state, _ = self.env.reset(seed=self.seed)
+            state, _ = self.env.reset(
+                seed=random.choice(range(self.seed, self.seed + 20))
+            )
             score = 0
             done = False
             while not done:
-                self.env.render()  # Render the environment
+                # self.env.render()  # Render the environment
                 action = self.select_action(state)
                 next_state, reward, done = self.step(action)
 
@@ -219,35 +249,94 @@ class A2CAgent:
                         "critic loss": critic_loss,
                     }
                 )
-                # if episode ends
-                if done:
-                    scores.append(score)
-                    tqdm.write(f"Episode {ep}: Total Reward = {score}")
-                    # W&B logging
-                    wandb.log({"episode": ep, "return": score})
 
-    def test(self, video_folder: str):
+            scores.append(score)
+            pbar.set_postfix(
+                score=f"{score:.1f}",
+                actor_loss=np.mean(actor_losses),
+                critic_loss=np.mean(critic_losses),
+                step=f"{step_count/1000:.2f}k",
+            )
+            # W&B logging
+            wandb.log({"episode": ep, "return": score, "step": step_count})
+
+            if ep % 100 == 0:
+                self.save_model(
+                    os.path.join(self.out_dir, f"a2c_{step_count//1000}k.pth")
+                )
+                tqdm.write(
+                    f"Saved model at {os.path.join(self.out_dir, f'a2c_{step_count//1000}k.pth')}"
+                )
+                torch.save(
+                    {
+                        "actor": self.actor.state_dict(),
+                        "critic": self.critic.state_dict(),
+                        "actor_optimizer": self.actor_optimizer.state_dict(),
+                        "critic_optimizer": self.critic_optimizer.state_dict(),
+                        "step_count": step_count,
+                        "score": score,
+                    },
+                    os.path.join(self.out_dir, f"a2c_{step_count//1000}k.pth"),
+                )
+                # )
+                eval_scores = []
+                for _ in tqdm(
+                    range(self.eval_episode),
+                    desc="Testing",
+                    leave=False,
+                    dynamic_ncols=True,
+                ):
+                    eval_score = self.test(
+                        video_folder=os.path.join(
+                            self.out_dir, f"videos/test_{step_count//1000}k"
+                        ),
+                        seed=random.choice(range(self.seed, self.seed + 20)),
+                    )
+                    eval_scores.append(float(eval_score))
+                tqdm.write(
+                    f"Average test score: {np.mean(eval_scores):.1f}, scores: {[round(eval_score,2) for eval_score in eval_scores]}"
+                )
+                if np.mean(eval_scores) > self.best_score:
+                    self.best_score = np.mean(eval_scores)
+                    self.save_model(os.path.join(self.out_dir, f"a2c_best.pth"))
+                    tqdm.write(
+                        f"Highest score: {self.best_score:.1f}, saved model at {os.path.join(self.out_dir, 'a2c_best.pth')}"
+                    )
+
+                wandb.log(
+                    {
+                        "Evaluation Score": np.mean(eval_scores),
+                        "step": step_count,
+                        "episode": ep,
+                    }
+                )
+
+    def test(self, video_folder: str, seed: int) -> float:
         """Test the agent."""
         self.is_test = True
 
         tmp_env = self.env
-        self.env = gym.wrappers.RecordVideo(self.env, video_folder=video_folder)
+        gym.logger.min_level = 40  # Disable gym logger
+        self.env = gym.wrappers.RecordVideo(
+            self.env,
+            video_folder=video_folder,
+        )
+        gym.logger.min_level = 30  # Enable gym logger
 
-        state, _ = self.env.reset(seed=self.seed)
+        state, _ = self.env.reset(seed=seed)
         done = False
-        score = 0
+        score: float = 0
 
         while not done:
             action = self.select_action(state)
             next_state, reward, done = self.step(action)
-
             state = next_state
             score += reward
-
-        print("score: ", score)
         self.env.close()
 
         self.env = tmp_env
+        self.is_test = False
+        return float(score)
 
 
 def seed_torch(seed):
@@ -259,28 +348,63 @@ def seed_torch(seed):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--wandb-run-name", type=str, default="pendulum-a2c-run")
-    parser.add_argument("--actor-lr", type=float, default=1e-4)
-    parser.add_argument("--critic-lr", type=float, default=1e-3)
+    parser.add_argument("--device", type=str, default="cpu")
+    parser.add_argument("--actor-lr", type=float, default=3e-4)
+    parser.add_argument("--critic-lr", type=float, default=3e-3)
     parser.add_argument("--discount-factor", type=float, default=0.9)
-    parser.add_argument("--num-episodes", type=float, default=1000)
-    parser.add_argument("--seed", type=int, default=77)
+    parser.add_argument("--num-episodes", type=float, default=1500)
+    parser.add_argument("--eval-episode", type=int, default=5)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--exp", type=str, default=f"{datetime.now().strftime('%m%d_%H%M%S')}"
+    )
     parser.add_argument(
         "--entropy-weight", type=int, default=1e-2
     )  # entropy can be disabled by setting this to 0
+    parser.add_argument("--test", type=str)
     args = parser.parse_args()
+
+    args.out_dir = f"results/task1/{args.exp}"
 
     # environment
     env = gym.make("Pendulum-v1", render_mode="rgb_array")
-    seed = 77
+    seed = args.seed
     random.seed(seed)
     np.random.seed(seed)
     seed_torch(seed)
-    wandb.init(
-        project="DLP-Lab7-A2C-Pendulum",
-        name=args.wandb_run_name,
-        save_code=True,
-    )
 
-    agent = A2CAgent(env, args)
-    agent.train()
+    if args.test:
+        agent = A2CAgent(env, args)
+        checkpoint = torch.load(args.test, weights_only=False)
+        agent.actor.load_state_dict(checkpoint["actor"])
+        agent.critic.load_state_dict(checkpoint["critic"])
+        agent.actor_optimizer.load_state_dict(checkpoint["actor_optimizer"])
+        agent.critic_optimizer.load_state_dict(checkpoint["critic_optimizer"])
+        agent.total_step = checkpoint["step_count"]
+        agent.is_test = True
+        print("Loaded model from", args.test)
+        scores = []
+        for i in range(20):
+            score = agent.test(
+                video_folder=os.path.join(args.out_dir, str(i)), seed=seed + i
+            )
+            scores.append(score)
+            print(f"Scores: {[float(round(sc,1)) for sc in scores]}", end="\r")
+        print(f"\nAverage test score: {np.mean(scores):.1f}")
+    else:
+        wandb.init(
+            project="DLP-Lab7-A2C-Pendulum",
+            name=args.exp,
+            save_code=True,
+        )
+        wandb.config.update(args)
+        print("Training the model")
+
+        env = gym.wrappers.RecordVideo(
+            env,
+            video_folder=f"{args.out_dir}/videos",
+            episode_trigger=lambda x: x % 100 == 0,
+        )
+
+        agent = A2CAgent(env, args)
+        agent.train()
