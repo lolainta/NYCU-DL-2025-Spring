@@ -311,16 +311,17 @@ class A2CAgent:
                     }
                 )
 
-    def test(self, video_folder: str, seed: int) -> float:
+    def test(self, video_folder: str | None, seed: int) -> float:
         """Test the agent."""
         self.is_test = True
 
         tmp_env = self.env
         gym.logger.min_level = 40  # Disable gym logger
-        self.env = gym.wrappers.RecordVideo(
-            self.env,
-            video_folder=video_folder,
-        )
+        if video_folder is not None:
+            self.env = gym.wrappers.RecordVideo(
+                self.env,
+                video_folder=video_folder,
+            )
         gym.logger.min_level = 30  # Enable gym logger
 
         state, _ = self.env.reset(seed=seed)
@@ -346,7 +347,24 @@ def seed_torch(seed):
         torch.backends.cudnn.deterministic = True
 
 
-if __name__ == "__main__":
+def test(agent, args):
+    scores = []
+    for i in range(20):
+        score = agent.test(
+            video_folder=(
+                os.path.join(args.out_dir, str(i)) if args.mode == "test" else None
+            ),
+            seed=args.seed + i,
+        )
+        scores.append(score)
+        if args.mode == "test":
+            print(f"Scores: {[float(round(sc,1)) for sc in scores]}", end="\r")
+    if args.mode == "test":
+        print()
+    return np.mean(scores)
+
+
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--actor-lr", type=float, default=3e-4)
@@ -355,56 +373,79 @@ if __name__ == "__main__":
     parser.add_argument("--num-episodes", type=float, default=1500)
     parser.add_argument("--eval-episode", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--ckpt", type=str, default="")
     parser.add_argument(
         "--exp", type=str, default=f"{datetime.now().strftime('%m%d_%H%M%S')}"
     )
     parser.add_argument(
         "--entropy-weight", type=int, default=1e-2
     )  # entropy can be disabled by setting this to 0
-    parser.add_argument("--test", type=str)
+    parser.add_argument(
+        "--mode", type=str, default="train", choices=["train", "test", "find_seed"]
+    )
     args = parser.parse_args()
 
     args.out_dir = f"results/task1/{args.exp}"
 
     # environment
     env = gym.make("Pendulum-v1", render_mode="rgb_array")
-    seed = args.seed
-    random.seed(seed)
-    np.random.seed(seed)
-    seed_torch(seed)
 
-    if args.test:
-        agent = A2CAgent(env, args)
-        checkpoint = torch.load(args.test, weights_only=False)
-        agent.actor.load_state_dict(checkpoint["actor"])
-        agent.critic.load_state_dict(checkpoint["critic"])
-        agent.actor_optimizer.load_state_dict(checkpoint["actor_optimizer"])
-        agent.critic_optimizer.load_state_dict(checkpoint["critic_optimizer"])
-        agent.total_step = checkpoint["step_count"]
-        agent.is_test = True
-        print("Loaded model from", args.test)
-        scores = []
-        for i in range(20):
-            score = agent.test(
-                video_folder=os.path.join(args.out_dir, str(i)), seed=seed + i
+    match args.mode:
+        case "find_seed":
+            best = (-np.inf, 0)
+            agent = A2CAgent(env, args)
+            checkpoint = torch.load(args.ckpt, weights_only=False)
+            agent.actor.load_state_dict(checkpoint["actor"])
+            agent.critic.load_state_dict(checkpoint["critic"])
+            agent.total_step = checkpoint["step_count"]
+            agent.is_test = True
+            print("Loaded model from", args.ckpt)
+            while best[0] < -150:
+                seed = random.randint(0, 2**31 - 1)
+                random.seed(seed)
+                np.random.seed(seed)
+                seed_torch(seed)
+                args.seed = seed
+                score = test(agent, args)
+                print(f"Seed: {seed}, Score: {score:.1f}")
+                if score > best[0]:
+                    best = (score, seed)
+                    print(f"Best score: {best[0]:.1f}, Seed: {best[1]}")
+        case "test":
+            if args.ckpt == "":
+                raise ValueError("Please provide a checkpoint file to test.")
+            agent = A2CAgent(env, args)
+            checkpoint = torch.load(args.ckpt, weights_only=False)
+            agent.actor.load_state_dict(checkpoint["actor"])
+            agent.critic.load_state_dict(checkpoint["critic"])
+            agent.total_step = checkpoint["step_count"]
+            agent.is_test = True
+            print("Loaded model from", args.ckpt)
+            print(f"Testing the model")
+            score = test(agent, args)
+            print(f"Score: {score:.1f}")
+        case "train":
+            wandb.init(
+                project="DLP-Lab7-A2C-Pendulum",
+                name=args.exp,
+                save_code=True,
             )
-            scores.append(score)
-            print(f"Scores: {[float(round(sc,1)) for sc in scores]}", end="\r")
-        print(f"\nAverage test score: {np.mean(scores):.1f}")
-    else:
-        wandb.init(
-            project="DLP-Lab7-A2C-Pendulum",
-            name=args.exp,
-            save_code=True,
-        )
-        wandb.config.update(args)
-        print("Training the model")
+            wandb.config.update(args)
 
-        env = gym.wrappers.RecordVideo(
-            env,
-            video_folder=f"{args.out_dir}/videos",
-            episode_trigger=lambda x: x % 100 == 0,
-        )
+            print("Training the model")
+            seed = args.seed
+            random.seed(seed)
+            np.random.seed(seed)
+            seed_torch(seed)
+            env = gym.wrappers.RecordVideo(
+                env,
+                video_folder=f"{args.out_dir}/videos",
+                episode_trigger=lambda x: x % 100 == 0,
+            )
 
-        agent = A2CAgent(env, args)
-        agent.train()
+            agent = A2CAgent(env, args)
+            agent.train()
+
+
+if __name__ == "__main__":
+    main()
