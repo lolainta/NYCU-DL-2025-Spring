@@ -378,7 +378,7 @@ def main():
         "--exp", type=str, default=f"{datetime.now().strftime('%m%d_%H%M%S')}"
     )
     parser.add_argument(
-        "--entropy-weight", type=int, default=1e-2
+        "--entropy-weight", type=float, default=1e-2
     )  # entropy can be disabled by setting this to 0
     parser.add_argument(
         "--mode", type=str, default="train", choices=["train", "test", "find_seed"]
