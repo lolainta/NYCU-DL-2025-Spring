@@ -267,18 +267,6 @@ class A2CAgent:
                 tqdm.write(
                     f"Saved model at {os.path.join(self.out_dir, f'a2c_{step_count//1000}k.pth')}"
                 )
-                torch.save(
-                    {
-                        "actor": self.actor.state_dict(),
-                        "critic": self.critic.state_dict(),
-                        "actor_optimizer": self.actor_optimizer.state_dict(),
-                        "critic_optimizer": self.critic_optimizer.state_dict(),
-                        "step_count": step_count,
-                        "score": score,
-                    },
-                    os.path.join(self.out_dir, f"a2c_{step_count//1000}k.pth"),
-                )
-                # )
                 eval_scores = []
                 for _ in tqdm(
                     range(self.eval_episode),
@@ -318,10 +306,7 @@ class A2CAgent:
         tmp_env = self.env
         gym.logger.min_level = 40  # Disable gym logger
         if video_folder is not None:
-            self.env = gym.wrappers.RecordVideo(
-                self.env,
-                video_folder=video_folder,
-            )
+            self.env = gym.wrappers.RecordVideo(self.env, video_folder=video_folder)
         gym.logger.min_level = 30  # Enable gym logger
 
         state, _ = self.env.reset(seed=seed)
