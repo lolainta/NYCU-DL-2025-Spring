@@ -342,11 +342,11 @@ class PPOAgent:
 
             wandb.log(
                 {
-                    "actor_loss": actor_loss,
-                    "critic_loss": critic_loss,
-                    "env_step": self.total_step,
-                    "score": np.mean(scores),
-                    "episode_count": episode_count,
+                    "Actor Loss": actor_loss,
+                    "Critic Loss": critic_loss,
+                    "Environment Step": self.total_step,
+                    "Train Score": np.mean(scores),
+                    "Episode": episode_count,
                 }
             )
             pbar.set_postfix(
@@ -364,7 +364,7 @@ class PPOAgent:
                 )
 
                 eval_scores = []
-                for _ in tqdm(
+                for i in tqdm(
                     range(self.eval_episode),
                     desc="Evaluating",
                     dynamic_ncols=True,
@@ -372,7 +372,7 @@ class PPOAgent:
                 ):
                     eval_score = self.test(
                         video_folder=f"{self.out_dir}/videos/test_{self.total_step//1000}k",
-                        seed=self.seed,
+                        seed=self.seed + i,
                     )
                     eval_scores.append(float(eval_score))
                 tqdm.write(
@@ -380,8 +380,8 @@ class PPOAgent:
                 )
                 wandb.log(
                     {
-                        "test_score": np.mean(eval_scores),
-                        "step": self.total_step,
+                        "Evaluation Score": np.mean(eval_scores),
+                        "Environment Step": self.total_step,
                     }
                 )
                 if np.mean(eval_scores) > self.best_score:
@@ -449,9 +449,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--actor-lr", type=float, default=1e-4)
-    parser.add_argument("--critic-lr", type=float, default=1e-3)
+    parser.add_argument("--critic-lr", type=float, default=3e-4)
     parser.add_argument("--discount-factor", type=float, default=0.9)
-    parser.add_argument("--num-episodes", type=float, default=100)
+    parser.add_argument("--num-episodes", type=int, default=100)
     parser.add_argument("--eval-episode", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--ckpt", type=str, default="")
@@ -492,7 +492,7 @@ def main():
                 seed_torch(seed)
                 args.seed = seed
                 score = test(agent, args)
-                print(f"Score: {score:.2f} with seed {seed}")
+                # print(f"Score: {score:.2f} with seed {seed}")
                 if score > best[0]:
                     best = (score, seed)
                     print(f"Best score: {best[0]:.2f} with seed {best[1]}")

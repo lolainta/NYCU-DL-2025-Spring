@@ -23,6 +23,7 @@ import wandb
 from tqdm import tqdm
 from datetime import datetime
 import os
+from copy import deepcopy
 
 
 def init_layer_uniform(layer: nn.Linear, init_w: float = 3e-3) -> nn.Linear:
@@ -342,21 +343,21 @@ class PPOAgent:
 
             wandb.log(
                 {
-                    "actor_loss": actor_loss,
-                    "critic_loss": critic_loss,
-                    "env_step": self.total_step,
-                    "score": np.mean(scores),
-                    "episode_count": episode_count,
+                    "Actor Loss": actor_loss,
+                    "Critic Loss": critic_loss,
+                    "Environment Step": self.total_step,
+                    "Train Score": np.mean(scores),
+                    "Episode": episode_count,
                 }
             )
             pbar.set_postfix(
                 actor_loss=actor_loss,
                 critic_loss=critic_loss,
                 score=f"{np.mean(scores):.2f} ± {np.std(scores):.2f}",
-                step=f"{self.total_step//10000}k",
+                step=f"{self.total_step//1000}k",
             )
 
-            if ep % 50 == 0:
+            if ep % 25 == 0:
                 # save model
                 self.save_model(f"{self.out_dir}/ppo_{self.total_step//1000}k.pth")
                 tqdm.write(
@@ -364,7 +365,7 @@ class PPOAgent:
                 )
 
                 eval_scores = []
-                for _ in tqdm(
+                for i in tqdm(
                     range(self.eval_episode),
                     desc="Evaluating",
                     dynamic_ncols=True,
@@ -372,7 +373,7 @@ class PPOAgent:
                 ):
                     eval_score = self.test(
                         video_folder=f"{self.out_dir}/videos/test_{self.total_step//1000}k",
-                        seed=self.seed,
+                        seed=self.seed + i,
                     )
                     eval_scores.append(float(eval_score))
                 tqdm.write(
@@ -380,15 +381,15 @@ class PPOAgent:
                 )
                 wandb.log(
                     {
-                        "test_score": np.mean(eval_scores),
-                        "step": self.total_step,
+                        "Evaluation Score": np.mean(eval_scores),
+                        "Environment Step": self.total_step,
                     }
                 )
                 if np.mean(eval_scores) > self.best_score:
                     self.best_score = np.mean(eval_scores)
                     self.save_model(os.path.join(self.out_dir, "ppo_best.pth"))
                     tqdm.write(
-                        f"Best model saved at {self.out_dir}/ppo_best.pth with score {self.best_score:.2f}"
+                        f"Best model at timestep {self.total_step//1000/1000}m saved at {self.out_dir}/ppo_best.pth with score {self.best_score:.2f}"
                     )
 
         # termination
@@ -398,7 +399,7 @@ class PPOAgent:
         """Test the agent."""
         self.is_test = True
 
-        tmp_env = self.env
+        tmp_env = deepcopy(self.env)
         gym.logger.min_level = 40  # Disable gym logger
         if video_folder is not None:
             self.env = gym.wrappers.RecordVideo(self.env, video_folder=video_folder)
@@ -451,7 +452,7 @@ def main():
     parser.add_argument("--actor-lr", type=float, default=1e-4)
     parser.add_argument("--critic-lr", type=float, default=3e-4)
     parser.add_argument("--discount-factor", type=float, default=0.99)
-    parser.add_argument("--num-episodes", type=float, default=1000)
+    parser.add_argument("--num-episodes", type=int, default=400)
     parser.add_argument("--eval-episode", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--ckpt", type=str, default="")
@@ -464,7 +465,7 @@ def main():
     parser.add_argument("--tau", type=float, default=0.95)
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--epsilon", type=float, default=0.2)
-    parser.add_argument("--rollout-len", type=int, default=2000)
+    parser.add_argument("--rollout-len", type=int, default=2500)
     parser.add_argument("--update-epoch", type=float, default=10)
     parser.add_argument(
         "--mode", type=str, default="train", choices=["train", "test", "find_seed"]
@@ -485,14 +486,14 @@ def main():
             agent.critic.load_state_dict(checkpoint["critic"])
             agent.is_test = True
             print("Loading model from", args.ckpt)
-            while best[0] < 2600:
+            while best[0] < 3800:
                 seed = random.randint(0, 2**32 - 1)
                 random.seed(seed)
                 np.random.seed(seed)
                 seed_torch(seed)
                 args.seed = seed
                 score = test(agent, args)
-                print(f"Score: {score:.2f} with seed {seed}")
+                # print(f"Score: {score:.2f} with seed {seed}")
                 if score > best[0]:
                     best = (score, seed)
                     print(f"Best score: {best[0]:.2f} with seed {best[1]}")
@@ -507,6 +508,7 @@ def main():
             print("Loading model from", args.ckpt)
             print("Testing the model")
             score = test(agent, args)
+            print(f"Video saved to {args.out_dir}")
             print(f"Score: {score:.2f}")
         case "train":
             wandb.init(

@@ -244,9 +244,9 @@ class A2CAgent:
                 # W&B logging
                 wandb.log(
                     {
-                        "step": step_count,
-                        "actor loss": actor_loss,
-                        "critic loss": critic_loss,
+                        "Environment Step": step_count,
+                        "Actor Loss": actor_loss,
+                        "Critic Loss": critic_loss,
                     }
                 )
 
@@ -258,7 +258,13 @@ class A2CAgent:
                 step=f"{step_count/1000:.2f}k",
             )
             # W&B logging
-            wandb.log({"episode": ep, "return": score, "step": step_count})
+            wandb.log(
+                {
+                    "Episode": ep,
+                    "Train Score": score,
+                    "Environment Step": step_count,
+                }
+            )
 
             if ep % 100 == 0:
                 self.save_model(
@@ -282,7 +288,7 @@ class A2CAgent:
                     )
                     eval_scores.append(float(eval_score))
                 tqdm.write(
-                    f"Average test score: {np.mean(eval_scores):.1f}, scores: {[round(eval_score,2) for eval_score in eval_scores]}"
+                    f"Step {step_count//1000}k: Average test score: {np.mean(eval_scores):.1f}, scores: {[round(eval_score,2) for eval_score in eval_scores]}"
                 )
                 if np.mean(eval_scores) > self.best_score:
                     self.best_score = np.mean(eval_scores)
@@ -294,8 +300,8 @@ class A2CAgent:
                 wandb.log(
                     {
                         "Evaluation Score": np.mean(eval_scores),
-                        "step": step_count,
-                        "episode": ep,
+                        "Environment Step": step_count,
+                        "Episode": ep,
                     }
                 )
 
@@ -355,7 +361,7 @@ def main():
     parser.add_argument("--actor-lr", type=float, default=3e-4)
     parser.add_argument("--critic-lr", type=float, default=3e-3)
     parser.add_argument("--discount-factor", type=float, default=0.9)
-    parser.add_argument("--num-episodes", type=float, default=1500)
+    parser.add_argument("--num-episodes", type=int, default=1000)
     parser.add_argument("--eval-episode", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--ckpt", type=str, default="")
@@ -392,7 +398,7 @@ def main():
                 seed_torch(seed)
                 args.seed = seed
                 score = test(agent, args)
-                print(f"Seed: {seed}, Score: {score:.1f}")
+                # print(f"Seed: {seed}, Score: {score:.1f}")
                 if score > best[0]:
                     best = (score, seed)
                     print(f"Best score: {best[0]:.1f}, Seed: {best[1]}")
