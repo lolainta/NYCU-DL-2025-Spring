@@ -1,0 +1,81 @@
+\section{Implementation Details}
+\label{sec:implementation}
+
+\subsection{Task1: A2C in \pendulum}
+\label{sec:task1}
+
+\subsubsection{Stochastic Policy Gradient Calculation}
+
+In the \texttt{update\_model()} method, the policy gradient is computed as:
+
+\inputminted[autogobble, firstline=179, lastline=212, highlightlines={202-205}]{python}{../a2c_pendulum.py}
+
+This represents the advantage-weighted log probability gradient, augmented with an entropy regularization term to encourage exploration.
+
+\subsubsection{TD Error Estimation}
+
+Temporal Difference (TD) error is computed using the Bellman equation, as shown bellow:
+
+\inputminted[autogobble, firstline=179, lastline=212, highlightlines={191-192,194}]{python}{../a2c_pendulum.py}
+
+This helps the critic estimate future returns using bootstrapped values.
+
+\subsection{Task2: PPO-Clip with GAE on \pendulum}
+\label{sec:task2}
+
+\subsubsection{Clipped Objective}
+
+In the \texttt{update\_model()} method of \texttt{PPOAgent} (in \texttt{ppo\_pendulum.py}), we compute the clipped objective as:
+
+\inputminted[autogobble, firstline=236, lastline=301, highlightlines={271,273-278}]{python}{../ppo_pendulum.py}
+
+This clipping mechanism ensures that the policy update does not move too far from the old policy, improving training stability.
+
+\subsubsection{Generalized Advantage Estimator (GAE)}
+
+The GAE is implemented in the \texttt{compute\_gae()} method, which calculates the advantage estimates using a combination of TD errors and bootstrapped values:
+\inputminted[autogobble, firstline=96, lastline=104]{python}{../ppo_pendulum.py}
+
+Here, gamma ($\gamma$) and tau ($\tau$) are user-configurable hyperparameters that balance bias and variance in advantage estimation.
+
+\subsection{Task3: PPO with GAE on \walker}
+\label{sec:task3}
+
+\subsubsection{Sample Collection from the Environment}
+
+Transitions are collected similarly as in Task 2 (Section \ref{sec:task2}), using the \texttt{select\_action()} and \texttt{step()} methods in \texttt{ppo\_walker.py}.
+These transitions are stored in memory and later batched during training with \texttt{ppo\_iter()}.
+
+\subsubsection{Exploration Enforcement}
+
+The entropy bonus is included in the policy loss to ensure exploration:
+
+\inputminted[autogobble, firstline=274, lastline=279, highlightlines=278]{python}{../ppo_walker.py}
+
+he coefficient for this term can be adjusted using the \texttt{----entropy-weight} CLI parameter (see \texttt{main()} function).
+
+\subsubsection{Model Performance Tracking}
+
+Since we are required to complete 3 different tasks in two different environments, I used the \href{https://wandb.ai/site}{Weight \& Biases} (WandB) library to track the training process and visualize the results.
+
+\subsubsection{Categorizing the Results}
+
+To categorize the results, I used the \texttt{wandb.init} method to create a new run for each task with different Project names.
+The reson why not using tags to catogorize the results as I did in homework 5 is that I wanted to have a clear separation between the different tasks and environments.
+This allows me to drag different dashboards avoid confusion and easily compare the results of different runs.
+
+\subsubsection{Snapshotting the Code}
+
+I also used set argument \texttt{save\_code} to \texttt{True}.
+This allows me to easily reproduce the results and compare the code used for different runs.
+
+\subsubsection{Hyperparameter Tuning}
+
+I used the \texttt{wandb.config} method to define the hyperparameters for each run.
+This allows me to easily track and compare the hyperparameters used for different runs in the WandB dashboard.
+
+\subsubsection{Result Plot Generation}
+
+I used the \texttt{wandb.log} method to log the results of each run.
+This allows me to easily visualize the results in the WandB dashboard and compare the performance of different runs.
+This also allows me to easily export the plots and use them in the report.
