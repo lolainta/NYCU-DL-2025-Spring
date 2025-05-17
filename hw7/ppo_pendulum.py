@@ -252,7 +252,6 @@ class PPOAgent:
         values = torch.cat(self.values).detach()
         log_probs = torch.cat(self.log_probs).detach()
         advantages = (returns - values).detach()
-        # advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
         actor_losses, critic_losses = [], []
 
@@ -369,6 +368,7 @@ class PPOAgent:
                     range(self.eval_episode),
                     desc="Evaluating",
                     dynamic_ncols=True,
+                    leave=False,
                 ):
                     eval_score = self.test(
                         video_folder=f"{self.out_dir}/videos/test_{self.total_step//1000}k",
