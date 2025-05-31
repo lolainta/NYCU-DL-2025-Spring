@@ -1,0 +1,17 @@
+\section{Introduction}
+\label{sec:introduction}
+
+This report details the implementation and analysis of two prominent policy-based reinforcement learning methods: Advantage Actor-Critic (A2C)~\cite{han2020actorcriticreinforcementlearningcontrol} and Proximal Policy Optimization (PPO)~\cite{schulman2017proximal}, specifically employing PPO-Clip~\cite{huang2024ppoclipattainsglobaloptimality} with Generalized Advantage Estimation (GAE)~\cite{schulman2018highdimensionalcontinuouscontrolusing}.
+Utilizing PyTorch~\cite{PyTorch2} and OpenAI Gym~\cite{brockman2016openai} environments, this work systematically explores and evaluates these methods on the \pendulum environment as well as a more challenging MuJoCo~\cite{MuJoCo} locomotion task, \walker.
+
+The objective of this assignment is to:
+
+Develop a thorough understanding of the key components and algorithms underlying policy-based reinforcement learning approaches.
+
+Gain practical experience by implementing and optimizing A2C~\cite{han2020actorcriticreinforcementlearningcontrol} and PPO~\cite{schulman2017proximal} algorithms with GAE~\cite{schulman2018highdimensionalcontinuouscontrolusing} in PyTorch~\cite{PyTorch2}.
+
+Analyze and compare the performance, training stability, and sample efficiency of A2C versus PPO through empirical experimentation.
+
+The report is organized into several key sections:
+Section \ref{sec:implementation} describes the specifics of the implemented algorithms, including methods used to obtain stochastic policy gradients, advantage estimations, and sample collections.
+Section \ref{sec:discussion} presents experimental results, with detailed comparisons between A2C and PPO implementations.
